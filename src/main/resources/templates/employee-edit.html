@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${employee.id} ? 'Редактирование ' + ${employee.name} : 'Новый сотрудник'"></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/styles/profile.css}">
+</head>
+<body>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0" th:text="${employee.id} ? 'Редактирование сотрудника' : 'Добавление нового сотрудника'"></h3>
+                </div>
+                <div class="card-body">
+                    <form th:action="${employee.id != null} ? @{'/employee/update/' + ${employee.id}} : @{/employee/save}"
+                          method="post" enctype="multipart/form-data">
+                        <input type="hidden" th:field="*{employee.id}">
+
+                        <!-- Основная информация -->
+                        <div class="form-section">
+                            <h4 class="mb-4"><i class="bi bi-person-lines-fill"></i> Основная информация</h4>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="name" class="form-label required-field">ФИО</label>
+                                    <input type="text" class="form-control" id="name"
+                                           th:field="*{employee.name}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="phoneNumber" class="form-label">Телефон</label>
+                                    <input type="tel" class="form-control" id="phoneNumber"
+                                           th:field="*{employee.phoneNumber}" pattern="[\+]\d{1,3}\d{7,14}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email"
+                                           th:field="*{employee.email}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="telegram" class="form-label">Telegram</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@</span>
+                                        <input type="text" class="form-control" id="telegram"
+                                               th:field="*{employee.telegram}" placeholder="username">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Фото профиля -->
+                        <div class="form-section">
+                            <h4 class="mb-4"><i class="bi bi-camera-fill"></i> Фото профиля</h4>
+                            <div class="row align-items-center">
+                                <div class="col-md-4 mb-3">
+                                    <div class="photo-container" id="photoPreview">
+                                        <div th:if="${employee.photoPath}">
+                                            <img th:src="@{${employee.photoPath}}" alt="Фото сотрудника" class="img-fluid rounded-circle">
+                                        </div>
+                                        <div th:unless="${employee.photoPath}" class="text-center text-muted">
+                                            <i class="bi bi-person-square fs-1"></i>
+                                            <p class="mt-2 mb-0">Нет фото</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="photo" class="form-label">Загрузить фото</label>
+                                    <input class="form-control" type="file" id="photo" name="photo" accept="image/*">
+                                    <div class="form-text">Максимальный размер: 5MB. Форматы: JPG, PNG, WEBP.</div>
+                                    <input type="hidden" th:field="*{employee.photoPath}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Навыки -->
+                        <div class="form-section">
+                            <h4 class="mb-4"><i class="bi bi-tools"></i> Навыки</h4>
+                            <div class="mb-3">
+                                <label class="form-label">Выберите навыки:</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div th:each="skill : ${T(org.example.model.Skills).values()}"
+                                         class="form-check">
+                                        <input class="form-check-input skill-checkbox" type="checkbox"
+                                               th:id="${'skill_' + skill.name()}"
+                                               th:value="${skill.name()}"
+                                               name="skills"
+                                               th:checked="${employee?.skills?.contains(skill) ?: false}">
+                                        <label class="form-check-label"
+                                               th:for="${'skill_' + skill.name()}"
+                                               th:text="${skill}"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- О себе -->
+                        <div class="form-section">
+                            <h4 class="mb-4"><i class="bi bi-person-badge"></i> О себе</h4>
+                            <div class="mb-3">
+                                <label for="about" class="form-label">Краткая информация</label>
+                                <textarea class="form-control" id="about" th:field="*{employee.skill}"
+                                          rows="3" placeholder="Расскажите о себе" maxlength="500"></textarea>
+                                <div class="form-text">Максимум 500 символов</div>
+                            </div>
+                        </div>
+
+                        <!-- Профессиональная информация -->
+                        <div class="form-section">
+                            <h4 class="mb-4"><i class="bi bi-briefcase-fill"></i> Профессиональная информация</h4>
+                            <div class="mb-3">
+                                <label for="resume" class="form-label">Опыт работы</label>
+                                <textarea class="form-control" id="resume" th:field="*{employee.resume}"
+                                          rows="5" placeholder="Опишите ваш профессиональный опыт" maxlength="2000"></textarea>
+                                <div class="form-text">Максимум 2000 символов</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="school" class="form-label">Образование</label>
+                                <textarea class="form-control" id="school" th:field="*{employee.school}"
+                                          rows="3" placeholder="Укажите ваше образование" maxlength="1000"></textarea>
+                                <div class="form-text">Максимум 1000 символов</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a th:href="@{/}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-save"></i>
+                                <span th:text="${employee.id} ? 'Сохранить изменения' : 'Добавить сотрудника'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Предпросмотр фото перед загрузкой
+    document.getElementById('photo')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Проверка размера файла (макс. 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимальный размер: 5MB');
+                e.target.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded-circle" alt="Предпросмотр фото">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Валидация формы перед отправкой
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+        const nameInput = document.getElementById('name');
+        if (!nameInput.value.trim()) {
+            e.preventDefault();
+            alert('Поле "ФИО" обязательно для заполнения');
+            nameInput.focus();
+        }
+    });
+</script>
+</body>
+</html>

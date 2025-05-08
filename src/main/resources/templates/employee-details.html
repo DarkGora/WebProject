@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${employee.name} + ' - Профиль сотрудника'"></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" th:href="@{/styles/profile.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Дополнительные стили для форматирования текста */
+        .text-content {
+            white-space: pre-line; /* Сохраняет переносы строк */
+            word-break: break-word; /* Перенос длинных слов */
+            text-align: left;
+            line-height: 1.7;
+            margin-top: 15px;
+            padding-left: 10px;
+        }
+
+        .text-block {
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .section-content {
+            padding: 15px 0;
+        }
+
+        /* Стили для текста с отступами */
+        .formatted-text {
+            display: block;
+            margin: 10px 0;
+            padding-left: 20px;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="nav-container">
+        <a href="#skill" class="nav-link">
+            <i class="fas fa-user"></i> О себе
+        </a>
+        <a href="#resume" class="nav-link">
+            <i class="fas fa-briefcase"></i> Опыт работы
+        </a>
+        <a href="#skills" class="nav-link">
+            <i class="fas fa-code"></i> Навыки
+        </a>
+        <a href="#school" class="nav-link">
+            <i class="fas fa-graduation-cap"></i> Образование
+        </a>
+    </div>
+</nav>
+
+<div class="container">
+    <a th:href="@{/}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Назад к списку
+    </a>
+    <hr class="divider">
+
+    <div class="profile-header">
+        <div class="profile-photo-container">
+            <div th:if="${employee.photoPath}">
+                <img th:src="@{${employee.photoPath}}" class="profile-photo" alt="Фото сотрудника">
+            </div>
+            <div th:unless="${employee.photoPath}" class="photo-placeholder">
+                <i class="fas fa-user-circle"></i>
+                <span>Нет фото</span>
+            </div>
+        </div>
+
+        <div class="profile-info">
+            <h1 th:text="${employee.name}"></h1>
+            <div class="contact-info">
+                <p><i class="fas fa-phone"></i> <strong>Телефон:</strong>
+                    <a th:href="'tel:' + ${employee.phoneNumber}" th:text="${employee.phoneNumber}"></a>
+                </p>
+                <p><i class="fas fa-envelope"></i> <strong>Email:</strong>
+                    <a th:href="'mailto:' + ${employee.email}" th:text="${employee.email}"></a>
+                </p>
+                <p><i class="fab fa-telegram"></i> <strong>Telegram:</strong>
+                    <a th:href="'https://t.me/' + ${#strings.substringAfter(employee.telegram, '@')}"
+                       th:text="${employee.telegram}" target="_blank"></a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-sections">
+        <section id="skill" class="profile-section">
+            <div class="section-header">
+                <i class="fas fa-user section-icon"></i>
+                <h3 class="section-title">О себе</h3>
+            </div>
+            <div class="section-content">
+                <div class="text-block formatted-text" th:text="${employee.skill} ?: 'Информация не указана'"></div>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section id="resume" class="profile-section">
+            <div class="section-header">
+                <i class="fas fa-briefcase section-icon"></i>
+                <h3 class="section-title">Опыт работы</h3>
+            </div>
+            <div class="section-content">
+                <div class="text-block formatted-text" th:text="${employee.resume} ?: 'Опыт работы не указан'"></div>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section id="skills" class="profile-section">
+            <div class="section-header">
+                <i class="fas fa-code section-icon"></i>
+                <h3 class="section-title">Навыки</h3>
+            </div>
+            <div class="section-content">
+                <div class="skills-container" th:unless="${#lists.isEmpty(employee.skills)}">
+                    <div th:each="skill : ${employee.skills}" class="skill-badge"
+                         th:text="${T(org.example.model.Skills).values()[skill.ordinal()]}">
+                    </div>
+                </div>
+                <div class="no-skills formatted-text" th:if="${#lists.isEmpty(employee.skills)}">
+                    Навыки не указаны
+                </div>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section id="school" class="profile-section">
+            <div class="section-header">
+                <i class="fas fa-graduation-cap section-icon"></i>
+                <h3 class="section-title">Образование</h3>
+            </div>
+            <div class="section-content">
+                <div class="text-block formatted-text" th:text="${employee.school} ?: 'Образование не указано'"></div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Плавная прокрутка с учетом навигационного меню
+        document.querySelectorAll('.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                window.scrollTo({
+                    top: targetElement.offsetTop - 90,
+                    behavior: 'smooth'
+                });
+
+                // Обновление активной ссылки
+                updateActiveNavLink(targetId);
+            });
+        });
+
+        // Функция обновления активной ссылки
+        function updateActiveNavLink(targetId) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === targetId) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Отслеживание скролла для подсветки активного раздела
+        const sections = document.querySelectorAll('.profile-section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        function onScroll() {
+            let currentSection = '';
+
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+
+                if (window.scrollY >= (sectionTop - 120)) {
+                    currentSection = '#' + section.getAttribute('id');
+                }
+            });
+
+            if (currentSection) {
+                updateActiveNavLink(currentSection);
+            }
+        }
+
+        // Дебаунс для оптимизации
+        let isScrolling;
+        window.addEventListener('scroll', function() {
+            window.clearTimeout(isScrolling);
+            isScrolling = setTimeout(onScroll, 50);
+        }, false);
+
+        // Инициализация активного раздела при загрузке
+        onScroll();
+
+        // Добавляем возможность копирования контактных данных
+        document.querySelectorAll('.contact-info a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const textToCopy = this.textContent;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Скопировано!',
+                        text: textToCopy,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    // Переход по ссылке после копирования
+                    setTimeout(() => window.location.href = this.href, 1600);
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>
