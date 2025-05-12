@@ -41,6 +41,7 @@ public class Employee {
     @Column(name = "photopath")
     private String photoPath;
 
+
     @Lob
     private String skill;
 
