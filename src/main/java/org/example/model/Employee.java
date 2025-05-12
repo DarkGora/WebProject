@@ -47,6 +47,7 @@ public class Employee {
     @Column(name = "skill", length = 1000)
     private String skill;
 
+
     @Column(name = "category", length = 100)
     private String category;
 
