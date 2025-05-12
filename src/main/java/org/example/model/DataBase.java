@@ -1,15 +1,16 @@
 package org.example.model;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.EmployeeRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.example.repository.EmployeeRepository;
+import org.springframework.data.domain.*;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Repository;
-
+import org.example.repository.EducationRepository;
+import org.example.repository.EmployeeRepository;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,7 +34,6 @@ public class DataBase implements EmployeeRepository {
                         .resume("Опыт работы: 2 года Java разработчиком")
                         .school("БГУИР")
                         .photoPath("/images/employee1.jpg")
-                        .skill("Backend разработка на Java")
                         .skills(new ArrayList<>(List.of(Skills.JAVA, Skills.SPRING, Skills.SQL)))
                         .build(),
 
@@ -45,7 +45,6 @@ public class DataBase implements EmployeeRepository {
                         .resume("Опыт работы: 5 лет Full-stack разработчиком")
                         .school("БГУ")
                         .photoPath("/images/employee2.jpg")
-                        .skill("Full-stack разработка")
                         .skills(new ArrayList<>(List.of(Skills.JAVA, Skills.SPRING_BOOT, Skills.REACT)))
                         .build()
         );
@@ -60,80 +59,86 @@ public class DataBase implements EmployeeRepository {
 
     @Override
     public Optional<Employee> findById(Long id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        Employee employee = employeeMap.get(id);
-        return Optional.ofNullable(employee != null ? copyEmployee(employee) : null);
+        return Optional.ofNullable(employeeMap.get(id));
     }
 
     @Override
     public Employee save(Employee employee) {
-        Objects.requireNonNull(employee, "Employee cannot be null");
-
         if (employee.getId() == null) {
             Long newId = nextId.getAndIncrement();
-            Employee newEmployee = copyEmployee(employee);
-            newEmployee.setId(newId);
-            employeeMap.put(newId, newEmployee);
-            log.info("Created new employee: {} (ID: {})", newEmployee.getName(), newId);
-            return copyEmployee(newEmployee);
+            employee.setId(newId);
+            employeeMap.put(newId, employee);
+            return employee;
         } else {
-            return employeeMap.compute(employee.getId(), (id, existing) -> {
-                if (existing == null) {
-                    return copyEmployee(employee);
-                } else {
-                    updateEmployeeFields(existing, employee);
-                    return existing;
-                }
-            });
+            employeeMap.put(employee.getId(), employee);
+            return employee;
         }
     }
 
     @Override
     public void deleteById(Long id) {
-        if (id != null && employeeMap.remove(id) != null) {
-            log.info("Deleted employee with ID: {}", id);
+        employeeMap.remove(id);
+    }
+
+    @Override
+    public void delete(Employee entity) {
+        if (entity != null && entity.getId() != null) {
+            employeeMap.remove(entity.getId());
         }
     }
 
     @Override
-    public void delete(Employee employee) {
-        if (employee != null && employee.getId() != null) {
-            deleteById(employee.getId());
+    public void deleteAllById(Iterable<? extends Long> ids) {
+        if (ids != null) {
+            ids.forEach(employeeMap::remove);
         }
+    }
+
+    @Override
+    public void deleteAll(Iterable<? extends Employee> entities) {
+        if (entities != null) {
+            entities.forEach(this::delete);
+        }
+    }
+
+    @Override
+    public void deleteAll() {
+        employeeMap.clear();
     }
 
     @Override
     public boolean existsById(Long id) {
-        return id != null && employeeMap.containsKey(id);
+        return employeeMap.containsKey(id);
+    }
+
+    @Override
+    public List<Employee> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneNumberContaining(String name, String email, String phoneNumber) {
+        return List.of();
+    }
+
+    @Override
+    public Optional<Employee> findByEmail(String email) {
+        return Optional.empty();
     }
 
     @Override
     public List<Employee> findByNameContaining(String namePart) {
-        return findByNameContainingIgnoreCase(namePart);
+        return filterEmployees(e -> e.getName().contains(namePart));
     }
 
     @Override
     public List<Employee> findBySkill(Skills skill) {
-        return findBySkillsContaining(skill);
+        return filterEmployees(e -> e.getSkills() != null && e.getSkills().contains(skill));
     }
 
     @Override
     public List<Employee> findBySkillsContaining(Skills skill) {
-        if (skill == null) {
-            return findAll();
-        }
-
-        return employeeMap.values().stream()
-                .filter(e -> e.getSkills() != null && e.getSkills().contains(skill))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e -> e.getSkills() != null && e.getSkills().contains(skill));
     }
 
     @Override
     public List<Employee> findByEmailContaining(String emailPart) {
-        return findByEmailContainingIgnoreCase(emailPart);
+        return filterEmployees(e -> e.getEmail().contains(emailPart));
     }
 
     @Override
@@ -143,109 +148,70 @@ public class DataBase implements EmployeeRepository {
 
     @Override
     public List<Employee> findByNameContainingIgnoreCase(String namePart) {
-        if (namePart == null || namePart.isBlank()) {
-            return findAll();
-        }
-
         String lowerNamePart = namePart.toLowerCase();
-        return employeeMap.values().stream()
-                .filter(e -> e.getName().toLowerCase().contains(lowerNamePart))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e -> e.getName().toLowerCase().contains(lowerNamePart));
     }
 
     @Override
     public List<Employee> findByEmailContainingIgnoreCase(String emailPart) {
-        if (emailPart == null || emailPart.isBlank()) {
-            return findAll();
-        }
-
         String lowerEmailPart = emailPart.toLowerCase();
-        return employeeMap.values().stream()
-                .filter(e -> e.getEmail().toLowerCase().contains(lowerEmailPart))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e -> e.getEmail().toLowerCase().contains(lowerEmailPart));
     }
 
     @Override
     public List<Employee> findByPhoneNumberContaining(String phonePart) {
-        if (phonePart == null || phonePart.isBlank()) {
-            return findAll();
-        }
-
-        return employeeMap.values().stream()
-                .filter(e -> e.getPhoneNumber() != null && e.getPhoneNumber().contains(phonePart))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public Page<Employee> findAll(Pageable pageable) {
-        List<Employee> allEmployees = findAll();
-        return getPage(allEmployees, pageable);
+        return filterEmployees(e -> e.getPhoneNumber().contains(phonePart));
     }
 
     @Override
     public Page<Employee> findByNameContaining(String namePart, Pageable pageable) {
         List<Employee> filtered = findByNameContaining(namePart);
-        return getPage(filtered, pageable);
+        return paginate(filtered, pageable);
+    }
+
+    @Override
+    public List<Employee> findBySchoolAndSkill(String school, Skills skill) {
+        return filterEmployees(e ->
+                (school == null || e.getSchool().equals(school)) &&
+                        (skill == null || (e.getSkills() != null && e.getSkills().contains(skill)))
+        );
+    }
+
+    @Override
+    public Page<Employee> findAll(Pageable pageable) {
+        return paginate(employeeMap.values(), pageable);
     }
 
     @Override
     public List<Employee> findBySchoolAndSkills(String school, Skills skill) {
-        if ((school == null || school.isBlank()) && skill == null) {
-            return findAll();
-        }
-
-        return employeeMap.values().stream()
-                .filter(e -> (school == null || school.isBlank() ||
-                        (e.getSchool() != null && e.getSchool().contains(school))) &&
-                        (skill == null ||
-                                (e.getSkills() != null && e.getSkills().contains(skill))))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e ->
+                (school == null || e.getSchool().contains(school)) &&
+                        (skill == null || (e.getSkills() != null && e.getSkills().contains(skill)))
+        );
     }
 
     @Override
     public List<Employee> findByNameOrEmail(String name, String email) {
-        if ((name == null || name.isBlank()) && (email == null || email.isBlank())) {
-            return findAll();
-        }
-
-        return employeeMap.values().stream()
-                .filter(e -> (name != null && !name.isBlank() &&
-                        e.getName().toLowerCase().contains(name.toLowerCase())) ||
-                        (email != null && !email.isBlank() &&
-                                e.getEmail().toLowerCase().contains(email.toLowerCase())))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e ->
+                e.getName().contains(name) || e.getEmail().contains(email)
+        );
     }
 
     @Override
     public <T> List<T> findBy(Class<T> type) {
-        if (type == String.class) {
-            return (List<T>) employeeMap.values().stream()
-                    .map(Employee::getName)
-                    .collect(Collectors.toList());
-        }
-        throw new UnsupportedOperationException("Unsupported projection type: " + type.getName());
+        return List.of();
     }
 
     @Override
     public List<String> findAllDistinctSchools() {
         return employeeMap.values().stream()
                 .map(Employee::getSchool)
-                .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
     }
 
     @Override
     public int updateEmailById(Long id, String newEmail) {
-        if (id == null || newEmail == null || newEmail.isBlank()) {
-            return 0;
-        }
-
         Employee employee = employeeMap.get(id);
         if (employee != null) {
             employee.setEmail(newEmail);
@@ -256,57 +222,13 @@ public class DataBase implements EmployeeRepository {
 
     @Override
     public int deleteBySchool(String school) {
-        if (school == null || school.isBlank()) {
-            return 0;
-        }
-
-        List<Long> idsToRemove = employeeMap.values().stream()
-                .filter(e -> school.equals(e.getSchool()))
-                .map(Employee::getId)
+        List<Long> idsToRemove = employeeMap.entrySet().stream()
+                .filter(entry -> school.equals(entry.getValue().getSchool()))
+                .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
         idsToRemove.forEach(employeeMap::remove);
         return idsToRemove.size();
-    }
-
-    private void updateEmployeeFields(Employee existing, Employee newData) {
-        existing.setName(newData.getName());
-        existing.setPhoneNumber(newData.getPhoneNumber());
-        existing.setEmail(newData.getEmail());
-        existing.setTelegram(newData.getTelegram());
-        existing.setResume(newData.getResume());
-        existing.setSchool(newData.getSchool());
-        existing.setPhotoPath(newData.getPhotoPath());
-        existing.setSkill(newData.getSkill());
-        existing.setSkills(newData.getSkills() != null ?
-                new ArrayList<>(newData.getSkills()) : new ArrayList<>());
-    }
-
-    private Employee copyEmployee(Employee original) {
-        return Employee.builder()
-                .id(original.getId())
-                .name(original.getName())
-                .phoneNumber(original.getPhoneNumber())
-                .email(original.getEmail())
-                .telegram(original.getTelegram())
-                .resume(original.getResume())
-                .school(original.getSchool())
-                .photoPath(original.getPhotoPath())
-                .skill(original.getSkill())
-                .skills(original.getSkills() != null ?
-                        new ArrayList<>(original.getSkills()) : null)
-                .build();
-    }
-
-    private Page<Employee> getPage(List<Employee> employees, Pageable pageable) {
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), employees.size());
-
-        if (start > employees.size()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, employees.size());
-        }
-
-        return new PageImpl<>(employees.subList(start, end), pageable, employees.size());
     }
 
     @Override
@@ -314,24 +236,169 @@ public class DataBase implements EmployeeRepository {
         if (skills == null || skills.isEmpty()) {
             return findAll();
         }
-
-        return employeeMap.values().stream()
-                .filter(e -> e.getSkills() != null && !Collections.disjoint(e.getSkills(), skills))
-                .map(this::copyEmployee)
-                .collect(Collectors.toList());
+        return filterEmployees(e ->
+                e.getSkills() != null && !Collections.disjoint(e.getSkills(), skills)
+        );
     }
 
     @Override
     public List<Employee> findByCategory(String category) {
-        if (category == null || category.isBlank()) {
-            return findAll();
-        }
+        return List.of();
+    }
 
+    // Вспомогательные методы
+    private List<Employee> filterEmployees(java.util.function.Predicate<Employee> predicate) {
         return employeeMap.values().stream()
-                .filter(e -> e.getSkills() != null &&
-                        e.getSkills().stream()
-                                .anyMatch(skill -> skill.getCategory().equalsIgnoreCase(category)))
-                .map(this::copyEmployee)
+                .filter(predicate)
                 .collect(Collectors.toList());
     }
+
+    private Page<Employee> paginate(Collection<Employee> employees, Pageable pageable) {
+        List<Employee> list = new ArrayList<>(employees);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), list.size());
+
+        return new PageImpl<>(
+                list.subList(start, end),
+                pageable,
+                list.size()
+        );
+    }
+
+    // Остальные методы интерфейса можно оставить пустыми
+    @Override
+    public <S extends Employee> List<S> saveAll(Iterable<S> entities) {
+        List<S> savedEntities = new ArrayList<>();
+        if (entities != null) {
+            for (S entity : entities) {
+                savedEntities.add((S) save(entity));
+            }
+        }
+        return savedEntities;
+    }
+
+    @Override
+    public List<Employee> findAllById(Iterable<Long> ids) {
+        List<Employee> result = new ArrayList<>();
+        if (ids != null) {
+            for (Long id : ids) {
+                Employee employee = employeeMap.get(id);
+                if (employee != null) {
+                    result.add(employee);
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void flush() {
+
+    }
+
+    @Override
+    public <S extends Employee> S saveAndFlush(S entity) {
+        return (S) save(entity);
+    }
+
+    @Override
+    public <S extends Employee> List<S> saveAllAndFlush(Iterable<S> entities) {
+        return saveAll(entities);
+    }
+
+    @Override
+    public void deleteAllInBatch(Iterable<Employee> entities) {
+        deleteAll(entities);
+    }
+
+    @Override
+    public void deleteAllByIdInBatch(Iterable<Long> ids) {
+        deleteAllById(ids);
+    }
+
+    @Override
+    public void deleteAllInBatch() {
+        deleteAll();
+    }
+
+    @Override
+    public Employee getOne(Long id) {
+        return employeeMap.get(id);
+    }
+
+    @Override
+    public Employee getById(Long id) {
+        return employeeMap.get(id);
+    }
+
+    @Override
+    public Employee getReferenceById(Long id) {
+        return employeeMap.get(id);
+    }
+
+    @Override
+    public <S extends Employee> Optional<S> findOne(Example<S> example) {
+        return Optional.empty();
+    }
+
+    @Override
+    public <S extends Employee> List<S> findAll(Example<S> example) {
+        return List.of();
+    }
+
+    @Override
+    public <S extends Employee> List<S> findAll(Example<S> example, Sort sort) {
+        return List.of();
+    }
+
+    @Override
+    public <S extends Employee> Page<S> findAll(Example<S> example, Pageable pageable) {
+        return null;
+    }
+
+    @Override
+    public <S extends Employee> long count(Example<S> example) {
+        return 0;
+    }
+
+    @Override
+    public <S extends Employee> boolean exists(Example<S> example) {
+        return false;
+    }
+
+    @Override
+    public <S extends Employee, R> R findBy(Example<S> example, Function<FluentQuery.FetchableFluentQuery<S>, R> queryFunction) {
+        return null;
+    }
+
+    @Override
+    public List<Employee> findAll(Sort sort) {
+        List<Employee> employees = new ArrayList<>(employeeMap.values());
+        if (sort != null && !sort.isUnsorted()) {
+            employees.sort((e1, e2) -> {
+                for (Sort.Order order : sort) {
+                    int comparison = compareEmployees(e1, e2, order);
+                    if (comparison != 0) {
+                        return order.isAscending() ? comparison : -comparison;
+                    }
+                }
+                return 0;
+            });
+        }
+        return employees;
+    }
+    private int compareEmployees(Employee e1, Employee e2, Sort.Order order) {
+        String property = order.getProperty();
+        switch (property) {
+            case "name":
+                return e1.getName().compareTo(e2.getName());
+            case "email":
+                return e1.getEmail().compareTo(e2.getEmail());
+            case "phoneNumber":
+                return e1.getPhoneNumber().compareTo(e2.getPhoneNumber());
+            default:
+                return 0;
+        }
+    }
+    // ... остальные существующие методы без изменений ...
 }

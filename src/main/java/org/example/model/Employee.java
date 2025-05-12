@@ -2,55 +2,63 @@ package org.example.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Entity
+@Table(name = "employee")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "employee", schema = "public")
-@Builder(toBuilder = true)
-@ToString(exclude = "photoPath")
+@Builder
+@ToString
 public class Employee {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "phonenumber", length = 20)
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(name = "email", nullable = false, length = 100, unique = true)
     private String email;
 
-    @Column(length = 50)
+    @Column(name = "telegram", length = 100)
     private String telegram;
 
-    @Column(columnDefinition = "text") // или "varchar"
+    @Column(name = "resume", length = 1000)
     private String resume;
 
-    @Column(length = 100)
+    @Column(name = "school", length = 100)
     private String school;
 
-    @Column(name = "photopath")
+    @Column(name = "photo_path", length = 255)
     private String photoPath;
 
-    @Lob
+    @Column(name = "skill", length = 1000)
     private String skill;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "employee_skills",
-            joinColumns = @JoinColumn(name = "employee_id"))
+    @Column(name = "category", length = 100)
+    private String category;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "employee_skills", joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     private List<Skills> skills = new ArrayList<>();
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @Override
     public boolean equals(Object o) {
@@ -64,22 +72,5 @@ public class Employee {
     @Override
     public int hashCode() {
         return Objects.hash(id, email);
-    }
-
-    // Методы для работы с навыками
-    public void addSkill(Skills skill) {
-        if (skill != null && !skills.contains(skill)) {
-            skills.add(skill);
-        }
-    }
-
-    public void removeSkill(Skills skill) {
-        if (skill != null) {
-            skills.remove(skill);
-        }
-    }
-
-    public boolean hasSkill(Skills skill) {
-        return skills.contains(skill);
     }
 }

@@ -25,8 +25,5 @@
     <property name="hibernate.current_session_context_class">thread</property> <!-- Управление сессиями -->
     <property name="hibernate.jdbc.batch_size">20</property> <!-- Размер батча для операций -->
 
-    <!-- Указание маппинга сущностей (пример) -->
-    <!-- <mapping class="com.example.entities.User"/> -->
-    <!-- <mapping resource="com/example/mappings/Product.hbm.xml"/> -->
   </session-factory>
 </hibernate-configuration>

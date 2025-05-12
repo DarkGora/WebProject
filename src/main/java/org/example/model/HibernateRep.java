@@ -1,16 +1,20 @@
 package org.example.model;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import org.example.EmployeeRepository;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
+import org.example.repository.EmployeeRepository;
 import org.hibernate.Session;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Repository
 @Primary
@@ -19,8 +23,8 @@ public class HibernateRep implements EmployeeRepository {
 
     private final EntityManager entityManager;
 
-    public HibernateRep(EntityManagerFactory entityManagerFactory) {
-        this.entityManager = entityManagerFactory.createEntityManager();
+    public HibernateRep(EntityManager entityManager) {
+        this.entityManager = entityManager;
     }
 
     protected Session getCurrentSession() {
@@ -36,174 +40,274 @@ public class HibernateRep implements EmployeeRepository {
     @Override
     @Transactional(readOnly = true)
     public Optional<Employee> findById(Long id) {
-        return Optional.ofNullable(getCurrentSession().get(Employee.class, id));
+        return Optional.ofNullable(getCurrentSession().find(Employee.class, id));
     }
 
     @Override
+    @Transactional
     public Employee save(Employee employee) {
-        getCurrentSession().persist(employee);
-        return employee;
-    }
+        if (employee == null) {
+            throw new IllegalArgumentException("Employee cannot be null");
+        }
 
-    @Override
-    public void deleteById(Long id) {
-        Employee employee = getCurrentSession().get(Employee.class, id);
-        if (employee != null) {
-            getCurrentSession().remove(employee);
+        // Проверка уникальности email
+        if (employee.getEmail() != null) {
+            TypedQuery<Long> query = entityManager.createQuery(
+                    "SELECT COUNT(e) FROM Employee e WHERE e.email = :email AND (e.id != :id OR :id IS NULL)", Long.class);
+            query.setParameter("email", employee.getEmail());
+            query.setParameter("id", employee.getId());
+            Long count = query.getSingleResult();
+            if (count > 0) {
+                throw new DataIntegrityViolationException("Email " + employee.getEmail() + " already exists");
+            }
+        }
+
+        if (employee.getId() == null) {
+            entityManager.persist(employee);
+            return employee;
+        } else {
+            return entityManager.merge(employee);
         }
     }
 
     @Override
+    @Transactional
+    public <S extends Employee> List<S> saveAll(Iterable<S> entities) {
+        if (entities == null) {
+            return Collections.emptyList();
+        }
+        List<S> result = new ArrayList<>();
+        for (S entity : entities) {
+            result.add((S) save(entity));
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        Employee employee = findById(id).orElse(null);
+        if (employee != null) {
+            entityManager.remove(employee);
+        }
+    }
+
+    @Override
+    @Transactional
     public void delete(Employee employee) {
-        getCurrentSession().remove(employee);
+        if (employee != null) {
+            if (entityManager.contains(employee)) {
+                entityManager.remove(employee);
+            } else {
+                Employee managedEmployee = entityManager.merge(employee);
+                entityManager.remove(managedEmployee);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllById(Iterable<? extends Long> ids) {
+        if (ids != null) {
+            for (Long id : ids) {
+                deleteById(id);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteAll(Iterable<? extends Employee> entities) {
+        if (entities != null) {
+            for (Employee entity : entities) {
+                delete(entity);
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteAll() {
+        entityManager.createQuery("DELETE FROM Employee").executeUpdate();
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean existsById(Long id) {
-        return getCurrentSession().createQuery(
-                        "SELECT COUNT(e) > 0 FROM Employee e WHERE e.id = :id", Boolean.class)
+        return entityManager.createQuery(
+                        "SELECT COUNT(e) FROM Employee e WHERE e.id = :id", Long.class)
                 .setParameter("id", id)
-                .getSingleResult();
+                .getSingleResult() > 0;
+    }
+
+    @Override
+    public List<Employee> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneNumberContaining(String name, String email, String phoneNumber) {
+        return List.of();
+    }
+
+    @Override
+    public Optional<Employee> findByEmail(String email) {
+        return Optional.empty();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByNameContaining(String namePart) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.name LIKE :namePart", Employee.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .getResultList();
+        return createQueryWithLike("name", namePart).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findBySkill(Skills skill) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE :skill MEMBER OF e.skills", Employee.class)
-                .setParameter("skill", skill)
-                .getResultList();
+        return findBySkillsContaining(skill);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Employee> findBySkillsContaining(Skills skill) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        cq.select(root).where(cb.isMember(skill, root.get("skills")));
+        return entityManager.createQuery(cq).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByEmailContaining(String emailPart) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.email LIKE :emailPart", Employee.class)
-                .setParameter("emailPart", "%" + emailPart + "%")
-                .getResultList();
+        return createQueryWithLike("email", emailPart).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public long count() {
-        return getCurrentSession().createQuery("SELECT COUNT(e) FROM Employee e", Long.class)
+        return entityManager.createQuery("SELECT COUNT(e) FROM Employee e", Long.class)
                 .getSingleResult();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByNameContainingIgnoreCase(String namePart) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .getResultList();
+        return createQueryWithLikeIgnoreCase("name", namePart).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByEmailContainingIgnoreCase(String emailPart) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE LOWER(e.email) LIKE LOWER(:emailPart)", Employee.class)
-                .setParameter("emailPart", "%" + emailPart + "%")
-                .getResultList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Employee> findBySkillsContaining(Skills skill) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE :skill MEMBER OF e.skills", Employee.class)
-                .setParameter("skill", skill)
-                .getResultList();
+        return createQueryWithLikeIgnoreCase("email", emailPart).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByPhoneNumberContaining(String phonePart) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.phoneNumber LIKE :phonePart", Employee.class)
-                .setParameter("phonePart", "%" + phonePart + "%")
-                .getResultList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Employee> findAll(Pageable pageable) {
-        long total = count();
-        List<Employee> result = getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e", Employee.class)
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList();
-        return new PageImpl<>(result, pageable, total);
+        return createQueryWithLike("phoneNumber", phonePart).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Employee> findByNameContaining(String namePart, Pageable pageable) {
-        long total = getCurrentSession().createQuery(
-                        "SELECT COUNT(e) FROM Employee e WHERE e.name LIKE :namePart", Long.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .getSingleResult();
+        TypedQuery<Employee> query = createQueryWithLike("name", namePart);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
 
-        List<Employee> result = getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.name LIKE :namePart", Employee.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList();
+        long total = countByNameContaining(namePart);
+        List<Employee> content = query.getResultList();
 
-        return new PageImpl<>(result, pageable, total);
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Employee> findBySchoolAndSkill(String school, Skills skill) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        Predicate schoolPredicate = cb.equal(root.get("school"), school);
+        Predicate skillPredicate = cb.isMember(skill, root.get("skills"));
+
+        cq.select(root).where(cb.and(schoolPredicate, skillPredicate));
+        return entityManager.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Employee> findAll(Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        // Применяем сортировку
+        if (pageable.getSort().isSorted()) {
+            List<Order> orders = pageable.getSort().stream()
+                    .map(order -> order.isAscending() ?
+                            cb.asc(root.get(order.getProperty())) :
+                            cb.desc(root.get(order.getProperty())))
+                    .collect(Collectors.toList());
+            cq.orderBy(orders);
+        }
+
+        TypedQuery<Employee> query = entityManager.createQuery(cq);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        long total = count();
+        List<Employee> content = query.getResultList();
+
+        return new PageImpl<>(content, pageable, total);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findBySchoolAndSkills(String school, Skills skill) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.school LIKE :school " +
-                                "AND :skill MEMBER OF e.skills", Employee.class)
-                .setParameter("school", "%" + school + "%")
-                .setParameter("skill", skill)
-                .getResultList();
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        Predicate schoolPredicate = cb.like(root.get("school"), "%" + school + "%");
+        Predicate skillPredicate = cb.isMember(skill, root.get("skills"));
+
+        cq.select(root).where(cb.and(schoolPredicate, skillPredicate));
+        return entityManager.createQuery(cq).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByNameOrEmail(String name, String email) {
-        return getCurrentSession().createQuery(
-                        "SELECT e FROM Employee e WHERE e.name LIKE :name " +
-                                "OR e.email LIKE :email", Employee.class)
-                .setParameter("name", "%" + name + "%")
-                .setParameter("email", "%" + email + "%")
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        Predicate namePredicate = cb.like(root.get("name"), "%" + name + "%");
+        Predicate emailPredicate = cb.like(root.get("email"), "%" + email + "%");
+
+        cq.select(root).where(cb.or(namePredicate, emailPredicate));
+        return entityManager.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Employee> findByCategory(String category) {
+        return entityManager.createQuery(
+                        "SELECT e FROM Employee e WHERE e.category = :category", Employee.class)
+                .setParameter("category", category)
                 .getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public <T> List<T> findBy(Class<T> type) {
-        if (type == String.class) {
-            return (List<T>) getCurrentSession().createQuery(
-                            "SELECT e.name FROM Employee e", String.class)
-                    .getResultList();
+        if (Employee.class.isAssignableFrom(type)) {
+            return (List<T>) findAll();
         }
-        throw new UnsupportedOperationException("Unsupported projection type: " + type.getName());
+        return Collections.emptyList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<String> findAllDistinctSchools() {
-        return getCurrentSession().createQuery(
+        return entityManager.createQuery(
                         "SELECT DISTINCT e.school FROM Employee e WHERE e.school IS NOT NULL", String.class)
                 .getResultList();
     }
@@ -211,7 +315,7 @@ public class HibernateRep implements EmployeeRepository {
     @Override
     @Transactional
     public int updateEmailById(Long id, String newEmail) {
-        return getCurrentSession().createMutationQuery(
+        return entityManager.createQuery(
                         "UPDATE Employee e SET e.email = :email WHERE e.id = :id")
                 .setParameter("email", newEmail)
                 .setParameter("id", id)
@@ -221,7 +325,7 @@ public class HibernateRep implements EmployeeRepository {
     @Override
     @Transactional
     public int deleteBySchool(String school) {
-        return getCurrentSession().createMutationQuery(
+        return entityManager.createQuery(
                         "DELETE FROM Employee e WHERE e.school = :school")
                 .setParameter("school", school)
                 .executeUpdate();
@@ -233,21 +337,182 @@ public class HibernateRep implements EmployeeRepository {
         if (skills == null || skills.isEmpty()) {
             return findAll();
         }
-        return getCurrentSession().createQuery(
-                        "SELECT DISTINCT e FROM Employee e JOIN e.skills s WHERE s IN :skills", Employee.class)
-                .setParameter("skills", skills)
-                .getResultList();
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        cq.select(root).where(root.join("skills").in(skills));
+        return entityManager.createQuery(cq).getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Employee> findByCategory(String category) {
-        if (category == null || category.isEmpty()) {
-            return findAll();
+    public List<Employee> findAllById(Iterable<Long> ids) {
+        if (ids == null || !ids.iterator().hasNext()) {
+            return Collections.emptyList();
         }
-        return getCurrentSession().createQuery(
-                        "SELECT DISTINCT e FROM Employee e JOIN e.skills s WHERE s.category = :category", Employee.class)
-                .setParameter("category", category)
+        return entityManager.createQuery(
+                        "SELECT e FROM Employee e WHERE e.id IN :ids", Employee.class)
+                .setParameter("ids", toList(ids))
                 .getResultList();
+    }
+
+    @Override
+    @Transactional
+    public void flush() {
+        entityManager.flush();
+    }
+
+    @Override
+    @Transactional
+    public <S extends Employee> S saveAndFlush(S entity) {
+        S saved = (S) save(entity);
+        entityManager.flush();
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public <S extends Employee> List<S> saveAllAndFlush(Iterable<S> entities) {
+        List<S> saved = saveAll(entities);
+        entityManager.flush();
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllInBatch(Iterable<Employee> entities) {
+        if (entities == null || !entities.iterator().hasNext()) {
+            return;
+        }
+        List<Long> ids = toList(entities).stream()
+                .map(Employee::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (!ids.isEmpty()) {
+            entityManager.createQuery("DELETE FROM Employee e WHERE e.id IN :ids")
+                    .setParameter("ids", ids)
+                    .executeUpdate();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllByIdInBatch(Iterable<Long> ids) {
+        if (ids == null || !ids.iterator().hasNext()) {
+            return;
+        }
+        entityManager.createQuery("DELETE FROM Employee e WHERE e.id IN :ids")
+                .setParameter("ids", toList(ids))
+                .executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllInBatch() {
+        entityManager.createQuery("DELETE FROM Employee").executeUpdate();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Employee getOne(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return entityManager.getReference(Employee.class, id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Employee getById(Long id) {
+        return findById(id).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Employee getReferenceById(Long id) {
+        return entityManager.getReference(Employee.class, id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Employee> findAll(Sort sort) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
+        Root<Employee> root = cq.from(Employee.class);
+
+        if (sort.isSorted()) {
+            List<Order> orders = sort.stream()
+                    .map(order -> order.isAscending() ?
+                            cb.asc(root.get(order.getProperty())) :
+                            cb.desc(root.get(order.getProperty())))
+                    .collect(Collectors.toList());
+            cq.orderBy(orders);
+        }
+
+        return entityManager.createQuery(cq).getResultList();
+    }
+
+    // Вспомогательные методы
+    private TypedQuery<Employee> createQueryWithLike(String field, String value) {
+        return entityManager.createQuery(
+                        "SELECT e FROM Employee e WHERE e." + field + " LIKE :value", Employee.class)
+                .setParameter("value", "%" + value + "%");
+    }
+
+    private TypedQuery<Employee> createQueryWithLikeIgnoreCase(String field, String value) {
+        return entityManager.createQuery(
+                        "SELECT e FROM Employee e WHERE LOWER(e." + field + ") LIKE LOWER(:value)", Employee.class)
+                .setParameter("value", "%" + value + "%");
+    }
+
+    private long countByNameContaining(String namePart) {
+        return entityManager.createQuery(
+                        "SELECT COUNT(e) FROM Employee e WHERE e.name LIKE :name", Long.class)
+                .setParameter("name", "%" + namePart + "%")
+                .getSingleResult();
+    }
+
+    private <T> List<T> toList(Iterable<T> iterable) {
+        List<T> result = new ArrayList<>();
+        iterable.forEach(result::add);
+        return result;
+    }
+
+    // Методы для поддержки Example-запросов (оставлены без реализации, если не требуются)
+    @Override
+    public <S extends Employee> Optional<S> findOne(Example<S> example) {
+        return Optional.empty(); // Требуется реализация с Criteria API или Spring Data JPA
+    }
+
+    @Override
+    public <S extends Employee> List<S> findAll(Example<S> example) {
+        return Collections.emptyList(); // Требуется реализация
+    }
+
+    @Override
+    public <S extends Employee> List<S> findAll(Example<S> example, Sort sort) {
+        return Collections.emptyList(); // Требуется реализация
+    }
+
+    @Override
+    public <S extends Employee> Page<S> findAll(Example<S> example, Pageable pageable) {
+        return new PageImpl<>(Collections.emptyList(), pageable, 0); // Требуется реализация
+    }
+
+    @Override
+    public <S extends Employee> long count(Example<S> example) {
+        return 0; // Требуется реализация
+    }
+
+    @Override
+    public <S extends Employee> boolean exists(Example<S> example) {
+        return false; // Требуется реализация
+    }
+
+    @Override
+    public <S extends Employee, R> R findBy(Example<S> example, Function<FluentQuery.FetchableFluentQuery<S>, R> queryFunction) {
+        return null; // Требуется реализация
     }
 }
