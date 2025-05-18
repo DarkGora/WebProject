@@ -3,99 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${employee.name} + ' - Профиль сотрудника'"></title>
+    <meta name="description" content="Профиль сотрудника">
+    <title th:text="${employee?.name != null} ? ${employee.name} + ' - Профиль сотрудника' : 'Профиль сотрудника'">
+        Профиль сотрудника
+    </title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/styles/profile.css}" th:if="@{environment.getProperty('spring.resources.static-locations') != null}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <link rel="stylesheet" th:href="@{/styles/profile.css}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Дополнительные стили для форматирования текста */
-        .text-content {
-            white-space: pre-line; /* Сохраняет переносы строк */
-            word-break: break-word; /* Перенос длинных слов */
-            text-align: left;
-            line-height: 1.7;
-            margin-top: 15px;
-            padding-left: 10px;
-        }
-
-        .text-block {
-            display: block;
-            margin-bottom: 15px;
-        }
-
-        .section-content {
-            padding: 15px 0;
-        }
-
-        /* Стили для текста с отступами */
-        .formatted-text {
-            display: block;
-            margin: 10px 0;
-            padding-left: 20px;
-            border-left: 3px solid #3498db;
-        }
-    </style>
 </head>
 <body>
-<nav>
-    <div class="nav-container">
-        <a href="#skill" class="nav-link">
-            <i class="fas fa-user"></i> О себе
+<nav class="sticky-top bg-light border-bottom">
+    <div class="nav-container d-flex justify-content-center gap-3 py-2">
+        <a href="#about" class="nav-link" th:aria-label="'О себе'" lang="ru">
+            <i class="bi bi-person"></i> <span>О себе</span>
         </a>
-        <a href="#resume" class="nav-link">
-            <i class="fas fa-briefcase"></i> Опыт работы
+        <a href="#resume" class="nav-link" th:aria-label="'Опыт работы'" lang="ru">
+            <i class="bi bi-briefcase"></i> <span>Опыт работы</span>
         </a>
-        <a href="#skills" class="nav-link">
-            <i class="fas fa-code"></i> Навыки
+        <a href="#skills" class="nav-link" th:aria-label="'Навыки'" lang="ru">
+            <i class="bi bi-tools"></i> <span>Навыки</span>
         </a>
-        <a href="#school" class="nav-link">
-            <i class="fas fa-graduation-cap"></i> Образование
+        <a href="#education" class="nav-link" th:aria-label="'Образование'" lang="ru">
+            <i class="bi bi-mortarboard"></i> <span>Образование</span>
         </a>
     </div>
 </nav>
 
-<div class="container">
-    <a th:href="@{/}" class="back-link">
-        <i class="fas fa-arrow-left"></i> Назад к списку
+<div class="container my-5">
+    <a th:href="@{/}" class="btn btn-outline-secondary mb-3" th:aria-label="'Назад к списку'" lang="ru">
+        <i class="bi bi-arrow-left"></i> <span>Назад к списку</span>
     </a>
     <hr class="divider">
 
-    <div class="profile-header">
+    <div class="profile-header d-flex align-items-start gap-4">
         <div class="profile-photo-container">
-            <div th:if="${employee.photoPath}">
-                <img th:src="@{${employee.photoPath}}" class="profile-photo" alt="Фото сотрудника">
+            <div th:if="${employee?.photoPath != null}">
+                <img th:src="@{${employee.photoPath} ?: '/images/placeholder.jpg'}"
+                     class="profile-photo rounded-circle"
+                     th:alt="'Фото сотрудника ' + ${employee.name}"
+                     th:onerror="'this.src=/images/placeholder.jpg'">
             </div>
-            <div th:unless="${employee.photoPath}" class="photo-placeholder">
-                <i class="fas fa-user-circle"></i>
+            <div th:unless="${employee?.photoPath != null}" class="photo-placeholder text-center">
+                <i class="bi bi-person-circle fs-1"></i>
                 <span>Нет фото</span>
             </div>
         </div>
 
-        <div class="profile-info">
-            <h1 th:text="${employee.name}"></h1>
+        <div class="profile-info flex-grow-1">
+            <h1 th:text="${employee?.name != null} ? ${employee.name} : 'Имя сотрудника'">Имя сотрудника</h1>
             <div class="contact-info">
-                <p><i class="fas fa-phone"></i> <strong>Телефон:</strong>
-                    <a th:href="'tel:' + ${employee.phoneNumber}" th:text="${employee.phoneNumber}"></a>
+                <p>
+                    <i class="bi bi-telephone"></i> <strong>Телефон:</strong>
+                    <span th:if="${employee?.phoneNumber != null}">
+                        <a th:href="'tel:' + ${employee.phoneNumber}"
+                           th:text="${employee.phoneNumber}"
+                           class="copyable"></a>
+                        <button class="btn btn-outline-secondary btn-sm ms-2 copy-btn"
+                                th:data-text="${employee.phoneNumber}"
+                                th:aria-label="'Копировать телефон'">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </span>
+                    <span th:unless="${employee?.phoneNumber != null}">Не указан</span>
                 </p>
-                <p><i class="fas fa-envelope"></i> <strong>Email:</strong>
-                    <a th:href="'mailto:' + ${employee.email}" th:text="${employee.email}"></a>
+                <p>
+                    <i class="bi bi-envelope"></i> <strong>Email:</strong>
+                    <span th:if="${employee?.email != null}">
+                        <a th:href="'mailto:' + ${employee.email}"
+                           th:text="${employee.email}"
+                           class="copyable"></a>
+                        <button class="btn btn-outline-secondary btn-sm ms-2 copy-btn"
+                                th:data-text="${employee.email}"
+                                th:aria-label="'Копировать email'">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </span>
+                    <span th:unless="${employee?.email != null}">Не указан</span>
                 </p>
-                <p><i class="fab fa-telegram"></i> <strong>Telegram:</strong>
-                    <a th:href="'https://t.me/' + ${#strings.substringAfter(employee.telegram, '@')}"
-                       th:text="${employee.telegram}" target="_blank"></a>
+                <p>
+                    <i class="bi bi-telegram"></i> <strong>Telegram:</strong>
+                    <span th:if="${employee?.telegram != null}">
+                        <a th:href="@{'https://t.me/' + ${#strings.replace(employee.telegram, '@', '')}}"
+                           th:text="${employee.telegram}"
+                           target="_blank"
+                           class="copyable"></a>
+                        <button class="btn btn-outline-secondary btn-sm ms-2 copy-btn"
+                                th:data-text="${employee.telegram}"
+                                th:aria-label="'Копировать Telegram'">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </span>
+                    <span th:unless="${employee?.telegram != null}">Не указан</span>
                 </p>
             </div>
         </div>
     </div>
 
     <div class="profile-sections">
-        <section id="skill" class="profile-section">
+        <section id="about" class="profile-section">
             <div class="section-header">
-                <i class="fas fa-user section-icon"></i>
+                <i class="bi bi-person section-icon"></i>
                 <h3 class="section-title">О себе</h3>
             </div>
             <div class="section-content">
-                <div class="text-block formatted-text" th:text="${employee.skill} ?: 'Информация не указана'"></div>
+                <div class="text-block formatted-text"
+                     th:text="${employee?.about != null} ? ${employee.about} : 'Информация не указана'">
+                    Информация не указана
+                </div>
             </div>
         </section>
 
@@ -103,11 +118,14 @@
 
         <section id="resume" class="profile-section">
             <div class="section-header">
-                <i class="fas fa-briefcase section-icon"></i>
+                <i class="bi bi-briefcase section-icon"></i>
                 <h3 class="section-title">Опыт работы</h3>
             </div>
             <div class="section-content">
-                <div class="text-block formatted-text" th:text="${employee.resume} ?: 'Опыт работы не указан'"></div>
+                <div class="text-block formatted-text"
+                     th:text="${employee?.resume != null} ? ${employee.resume} : 'Опыт работы не указан'">
+                    Опыт работы не указан
+                </div>
             </div>
         </section>
 
@@ -115,16 +133,17 @@
 
         <section id="skills" class="profile-section">
             <div class="section-header">
-                <i class="fas fa-code section-icon"></i>
+                <i class="bi bi-tools section-icon"></i>
                 <h3 class="section-title">Навыки</h3>
             </div>
             <div class="section-content">
-                <div class="skills-container" th:unless="${#lists.isEmpty(employee.skills)}">
-                    <div th:each="skill : ${employee.skills}" class="skill-badge"
-                         th:text="${T(org.example.model.Skills).values()[skill.ordinal()]}">
-                    </div>
+                <div class="skills-container" th:unless="${#lists.isEmpty(employee?.skills)}">
+                    <span th:each="skill : ${employee.skills}"
+                          class="badge bg-primary me-2 mb-2"
+                          th:text="${skill}"></span>
                 </div>
-                <div class="no-skills formatted-text" th:if="${#lists.isEmpty(employee.skills)}">
+                <div class="no-skills formatted-text"
+                     th:if="${#lists.isEmpty(employee?.skills)}">
                     Навыки не указаны
                 </div>
             </div>
@@ -132,39 +151,54 @@
 
         <hr class="divider">
 
-        <section id="school" class="profile-section">
+        <section id="education" class="profile-section">
             <div class="section-header">
-                <i class="fas fa-graduation-cap section-icon"></i>
+                <i class="bi bi-mortarboard section-icon"></i>
                 <h3 class="section-title">Образование</h3>
             </div>
             <div class="section-content">
-                <div class="text-block formatted-text" th:text="${employee.school} ?: 'Образование не указано'"></div>
+                <div th:if="${employee?.educations != null and !#lists.isEmpty(employee.educations)}">
+                    <div th:each="education : ${employee.educations}" class="education-item mb-3">
+                        <h5 th:text="${education.university}">Университет</h5>
+                        <p>
+                            <strong>Степень:</strong> <span th:text="${education.degree}">Степень</span><br>
+                            <strong>Период:</strong> <span th:text="${education.yearStart} + ' - ' + ${education.yearEnd}">Годы</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="text-block formatted-text"
+                     th:if="${employee?.school != null}"
+                     th:text="${employee.school}">
+                    Образование не указано
+                </div>
+                <div class="text-block formatted-text"
+                     th:if="${employee?.school == null and (employee?.educations == null or #lists.isEmpty(employee.educations))}">
+                    Образование не указано
+                </div>
             </div>
         </section>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Плавная прокрутка с учетом навигационного меню
+    document.addEventListener('DOMContentLoaded', () => {
+        // Плавная прокрутка
         document.querySelectorAll('.nav-link').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
                 const targetId = this.getAttribute('href');
                 const targetElement = document.querySelector(targetId);
-
                 window.scrollTo({
-                    top: targetElement.offsetTop - 90,
+                    top: targetElement.offsetTop - 100,
                     behavior: 'smooth'
                 });
-
-                // Обновление активной ссылки
                 updateActiveNavLink(targetId);
             });
         });
 
-        // Функция обновления активной ссылки
+        // Обновление активной ссылки
         function updateActiveNavLink(targetId) {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
@@ -174,55 +208,81 @@
             });
         }
 
-        // Отслеживание скролла для подсветки активного раздела
+        // Отслеживание скролла
         const sections = document.querySelectorAll('.profile-section');
-        const navLinks = document.querySelectorAll('.nav-link');
-
         function onScroll() {
             let currentSection = '';
-
             sections.forEach(section => {
                 const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-
                 if (window.scrollY >= (sectionTop - 120)) {
                     currentSection = '#' + section.getAttribute('id');
                 }
             });
-
             if (currentSection) {
                 updateActiveNavLink(currentSection);
             }
         }
 
-        // Дебаунс для оптимизации
+        // Дебаунс для скролла
         let isScrolling;
-        window.addEventListener('scroll', function() {
-            window.clearTimeout(isScrolling);
+        window.addEventListener('scroll', () => {
+            clearTimeout(isScrolling);
             isScrolling = setTimeout(onScroll, 50);
         }, false);
-
-        // Инициализация активного раздела при загрузке
         onScroll();
 
-        // Добавляем возможность копирования контактных данных
-        document.querySelectorAll('.contact-info a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const textToCopy = this.textContent;
-                navigator.clipboard.writeText(textToCopy).then(() => {
+        // Копирование текста
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const text = btn.dataset.text;
+                copyToClipboard(text);
+            });
+        });
+
+        // Функция копирования с запасным вариантом
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
                     Swal.fire({
                         icon: 'success',
                         title: 'Скопировано!',
-                        text: textToCopy,
+                        text: text,
                         timer: 1500,
                         showConfirmButton: false
                     });
-                    // Переход по ссылке после копирования
-                    setTimeout(() => window.location.href = this.href, 1600);
+                }).catch(() => {
+                    fallbackCopyText(text);
                 });
-            });
-        });
+            } else {
+                fallbackCopyText(text);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Скопировано!',
+                    text: text,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    text: 'Не удалось скопировать текст',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+            document.body.removeChild(textArea);
+        }
     });
 </script>
 </body>
