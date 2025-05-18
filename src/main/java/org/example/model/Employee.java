@@ -1,86 +1,61 @@
 package org.example.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "employee", schema = "public")
-@Builder(toBuilder = true)
-@ToString(exclude = "photoPath")
+@Table(name = "employees")
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "phonenumber", length = 20)
-    private String phoneNumber;
-
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(length = 50)
-    private String telegram;
+    @Column(name = "phone_number")
+    private String phoneNumber;
 
-    @Column(columnDefinition = "text") // или "varchar"
-    private String resume;
-
-    @Column(length = 100)
+    @Column(name = "school")
     private String school;
 
-    @Column(name = "photopath")
+    @Transient // Игнорировать поле в базе данных
+    private String about;
+
+    @Transient // Игнорировать поле в базе данных
+    private String category;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "photo_path")
     private String photoPath;
 
+    @Column(name = "resume")
+    private String resume;
 
-    @Lob
-    private String skill;
+    @Column(name = "telegram")
+    private String telegram;
 
     @ElementCollection
-    @CollectionTable(
-            name = "employee_skills",
-            joinColumns = @JoinColumn(name = "employee_id"))
+    @CollectionTable(name = "employee_skills", joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
-    @Enumerated(EnumType.STRING)
-    private List<Skills> skills = new ArrayList<>();
+    private Set<String> skills = new HashSet<>(); // Используйте Set вместо List
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Employee employee = (Employee) o;
-        return Objects.equals(id, employee.id) &&
-                Objects.equals(email, employee.email);
-    }
+    @Builder.Default
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Education> educations = new ArrayList<>();
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, email);
-    }
-
-    // Методы для работы с навыками
-    public void addSkill(Skills skill) {
-        if (skill != null && !skills.contains(skill)) {
-            skills.add(skill);
-        }
-    }
-
-    public void removeSkill(Skills skill) {
-        if (skill != null) {
-            skills.remove(skill);
-        }
-    }
-
-    public boolean hasSkill(Skills skill) {
-        return skills.contains(skill);
-    }
 }

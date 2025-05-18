@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Перечисление навыков сотрудников с категоризацией
+ * Перечисление навыков сотрудников с категоризацией.
  */
 public enum Skills {
     // Backend навыки
@@ -36,7 +36,8 @@ public enum Skills {
     GRADLE("Tools"),
     JUNIT("Testing"),
     MOCKITO("Testing"),
-    POSTMAN("Tools");
+    POSTMAN("Tools"),
+    TESTING("Testing"); // Добавлено для соответствия SQL-данным
 
     private final String category;
 
@@ -48,12 +49,23 @@ public enum Skills {
         return category;
     }
 
+    /**
+     * Возвращает список навыков по категории, игнорируя регистр.
+     * @param category Категория навыков
+     * @return Список навыков или пустой список, если категория null или пустая
+     */
     public static List<Skills> getByCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return List.of();
+        }
         return Arrays.stream(values())
                 .filter(skill -> skill.getCategory().equalsIgnoreCase(category))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Возвращает список всех уникальных категорий.
+     */
     public static List<String> getAllCategories() {
         return Arrays.stream(values())
                 .map(Skills::getCategory)

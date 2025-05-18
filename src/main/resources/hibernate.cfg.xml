@@ -3,30 +3,28 @@
         "-//Hibernate/Hibernate Configuration DTD//EN"
         "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
 
-<!-- Конфигурация Hibernate для работы с PostgreSQL -->
 <hibernate-configuration>
   <session-factory>
-    <!-- Параметры подключения к базе данных -->
-    <property name="connection.url">jdbc:postgresql://localhost:5444/db</property>
-    <property name="connection.driver_class">org.postgresql.Driver</property>
-    <property name="connection.username">user</property>
-    <property name="connection.password">12345</property>
-
-    <!-- Диалект для PostgreSQL -->
+    <!-- Сначала все property элементы -->
+    <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+    <property name="hibernate.connection.url">jdbc:postgresql://localhost:5444/db</property>
+    <property name="hibernate.connection.username">user</property>
+    <property name="hibernate.connection.password">12345</property>
+    <property name="hibernate.connection.pool_size">10</property>
     <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+    <property name="hibernate.show_sql">true</property>
+    <property name="hibernate.format_sql">true</property>
+    <property name="hibernate.hbm2ddl.auto">update</property>
+    <property name="hibernate.current_session_context_class">thread</property>
+    <property name="hibernate.jdbc.batch_size">20</property>
+    <property name="hibernate.order_inserts">true</property>
+    <property name="hibernate.order_updates">true</property>
+    <property name="hibernate.cache.use_second_level_cache">false</property>
+    <property name="hibernate.cache.use_query_cache">false</property>
 
-    <!-- Отображение SQL-запросов в логах -->
-    <property name="show_sql">true</property>
-    <property name="format_sql">true</property>
-
-    <!-- Дополнительные рекомендуемые настройки -->
-    <property name="hibernate.hbm2ddl.auto">update</property> <!-- Автоматическое обновление схемы БД -->
-    <property name="hibernate.connection.pool_size">10</property> <!-- Размер пула соединений -->
-    <property name="hibernate.current_session_context_class">thread</property> <!-- Управление сессиями -->
-    <property name="hibernate.jdbc.batch_size">20</property> <!-- Размер батча для операций -->
-
-    <!-- Указание маппинга сущностей (пример) -->
-    <!-- <mapping class="com.example.entities.User"/> -->
-    <!-- <mapping resource="com/example/mappings/Product.hbm.xml"/> -->
+    <!-- Маппинг сущностей -->
+    <mapping class="org.example.model.Employee"/>
+    <mapping class="org.example.model.Education"/>
+    <mapping class="org.example.model.Skills"/>
   </session-factory>
 </hibernate-configuration>
