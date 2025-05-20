@@ -1,427 +1,851 @@
 package org.example.repository;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Employee;
 import org.example.model.Skills;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+/**
+ * Репозиторий для управления сущностью Employee с использованием Hibernate.
+ */
 @Slf4j
 @Repository
-@RequiredArgsConstructor
-@Transactional
-public class HibernateRep implements EmployeeRepository {
+public class HibernateRep implements EmployeeRepository, AutoCloseable {
     private final SessionFactory sessionFactory;
 
-    private Session getCurrentSession() {
+    public HibernateRep() {
         try {
-            Session session = sessionFactory.getCurrentSession();
-            if (session == null) {
-                throw new IllegalStateException("No active session found");
-            }
-
-            // Явная проверка и начало транзакции, если необходимо
-            if (!session.getTransaction().isActive()) {
-                log.warn("Транзакция не активна, начинаем новую");
-                session.beginTransaction();
-            }
-
-            return session;
+            this.sessionFactory = new Configuration()
+                    .configure() // Загружает hibernate.cfg.xml
+                    .buildSessionFactory();
+            log.info("SessionFactory успешно создан");
         } catch (Exception e) {
-            log.error("Ошибка при получении сессии", e);
-            throw new IllegalStateException("Failed to get session", e);
+            log.error("Ошибка при создании SessionFactory", e);
+            throw new RuntimeException("Не удалось инициализировать Hibernate", e);
         }
     }
 
-    @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
-    public List<Employee> findAll() {
-        log.debug("Получение всех сотрудников");
-        return getCurrentSession()
-                .createQuery("FROM Employee", Employee.class)
-                .getResultList();
+    /**
+     * Получение сессии Hibernate.
+     *
+     * @return открытая сессия
+     * @throws IllegalStateException если сессия недоступна
+     */
+    private Session getSession() {
+        try {
+            return sessionFactory.openSession();
+        } catch (Exception e) {
+            log.error("Ошибка при получении сессии Hibernate", e);
+            throw new IllegalStateException("Не удалось получить сессию", e);
+        }
     }
 
+    /**
+     * Поиск всех сотрудников.
+     *
+     * @return список сотрудников или пустой список при ошибке
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+    public List<Employee> findAll() {
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee", Employee.class).getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при получении всех сотрудников", e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findAll");
+            }
+        }
+    }
+
+    /**
+     * Поиск сотрудников с сортировкой.
+     *
+     * @param sortField поле для сортировки (name, email, phoneNumber, school, createdAt)
+     * @param ascending направление сортировки (true для ASC, false для DESC)
+     * @return отсортированный список сотрудников или все сотрудники, если поле некорректно
+     */
+    @Override
     public List<Employee> findAllSorted(String sortField, boolean ascending) {
         if (sortField == null || sortField.isBlank()) {
+            log.debug("Поле сортировки не указано, возвращаются все сотрудники");
             return findAll();
         }
-        String direction = ascending ? "ASC" : "DESC";
-        String hql = switch (sortField.toLowerCase()) {
-            case "name" -> "FROM Employee e ORDER BY e.name " + direction;
-            case "email" -> "FROM Employee e ORDER BY e.email " + direction;
-            case "phonenumber" -> "FROM Employee e ORDER BY e.phoneNumber " + direction;
-            case "school" -> "FROM Employee e ORDER BY e.school " + direction;
-            case "createdat" -> "FROM Employee e ORDER BY e.createdAt " + direction;
-            default -> {
-                log.warn("Неподдерживаемое поле сортировки: {}, возвращаются все сотрудники", sortField);
-                yield "FROM Employee";
+        List<String> validFields = List.of("name", "email", "phonenumber", "school", "createdat");
+        String field = sortField.toLowerCase();
+        if (!validFields.contains(field)) {
+            log.warn("Некорректное поле сортировки: {}", sortField);
+            return findAll();
+        }
+        String order = ascending ? "ASC" : "DESC";
+        String query = "FROM Employee e ORDER BY e." + field + " " + order;
+        Session session = getSession();
+        try {
+            return session.createQuery(query, Employee.class).getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при получении сотрудников с сортировкой по полю {}: {}", sortField, e.getMessage());
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findAllSorted");
             }
-        };
-        log.debug("Получение сотрудников с сортировкой: {} {}", sortField, direction);
-        return getCurrentSession()
-                .createQuery(hql, Employee.class)
-                .getResultList();
+        }
     }
 
-    @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+    /**
+     * Поиск сотрудников с пагинацией.
+     *
+     * @param offset начальная позиция
+     * @param limit  количество записей
+     * @return список сотрудников или пустой список при ошибке
+     */
     public List<Employee> findAllPaginated(int offset, int limit) {
-        log.debug("Получение сотрудников с пагинацией: offset={}, limit={}", offset, limit);
+        if (offset < 0 || limit <= 0) {
+            log.warn("Некорректные параметры пагинации: offset={}, limit={}", offset, limit);
+            throw new IllegalArgumentException("Некорректные параметры пагинации");
+        }
+        Session session = getSession();
         try {
-            return getCurrentSession()
-                    .createQuery("FROM Employee", Employee.class)
+            return session.createQuery(
+                            "SELECT e FROM Employee e LEFT JOIN FETCH e.skills",
+                            Employee.class)
                     .setFirstResult(offset)
                     .setMaxResults(limit)
                     .getResultList();
         } catch (Exception e) {
-            log.error("Ошибка при выполнении запроса пагинации: {}", e.getMessage(), e);
-            throw e;
+            log.error("Ошибка при получении сотрудников с пагинацией: offset={}, limit={}", offset, limit, e);
+            throw new RuntimeException("Не удалось загрузить сотрудников с пагинацией", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findAllPaginated");
+            }
         }
     }
 
+    /**
+     * Подсчет всех сотрудников.
+     *
+     * @return количество сотрудников или 0 при ошибке
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public long count() {
-        log.debug("Подсчёт общего количества сотрудников");
+        Session session = getSession();
         try {
-            return getCurrentSession()
-                    .createQuery("SELECT COUNT(*) FROM Employee", Long.class)
+            return session.createQuery("SELECT COUNT(*) FROM Employee", Long.class)
                     .getSingleResult();
         } catch (Exception e) {
-            log.error("Ошибка при подсчёте сотрудников: {}", e.getMessage(), e);
-            throw e;
+            log.error("Ошибка при подсчете сотрудников", e);
+            return 0L;
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для count");
+            }
         }
     }
 
-    @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+    /**
+     * Поиск сотрудника по идентификатору.
+     *
+     * @param id идентификатор сотрудника
+     * @return Optional с сотрудником или пустой, если не найден
+     */
     public Optional<Employee> findById(Long id) {
-        if (id == null) {
-            log.warn("Попытка найти сотрудника с null ID");
-            return Optional.empty();
+        if (id == null || id <= 0) {
+            log.warn("Некорректный ID сотрудника: {}", id);
+            throw new IllegalArgumentException("Некорректный ID сотрудника");
         }
-        log.debug("Получение сотрудника по ID: {}", id);
-        return Optional.ofNullable(getCurrentSession().get(Employee.class, id));
+        Session session = getSession();
+        try {
+            return Optional.ofNullable(session.createQuery(
+                            "SELECT e FROM Employee e LEFT JOIN FETCH e.skills LEFT JOIN FETCH e.educations WHERE e.id = :id",
+                            Employee.class)
+                    .setParameter("id", id)
+                    .uniqueResult());
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудника по ID: {}", id, e);
+            throw new RuntimeException("Не удалось загрузить сотрудника с ID: " + id, e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findById");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудника по email.
+     *
+     * @param email адрес электронной почты
+     * @return Optional с сотрудником или пустой, если не найден
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public Optional<Employee> findByEmail(String email) {
         if (email == null || email.isBlank()) {
-            log.warn("Попытка найти сотрудника с null или пустым email");
+            log.warn("Попытка найти сотрудника с пустым email");
             return Optional.empty();
         }
-        log.debug("Получение сотрудника по email: {}", email);
-        return Optional.ofNullable(getCurrentSession()
-                .createQuery("FROM Employee e WHERE e.email = :email", Employee.class)
-                .setParameter("email", email)
-                .uniqueResult());
+        Session session = getSession();
+        try {
+            Employee employee = session.createQuery("FROM Employee e WHERE e.email = :email", Employee.class)
+                    .setParameter("email", email)
+                    .uniqueResult();
+            return Optional.ofNullable(employee);
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудника по email: {}", email, e);
+            return Optional.empty();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByEmail");
+            }
+        }
     }
 
+    /**
+     * Сохранение сотрудника.
+     *
+     * @param employee объект сотрудника
+     * @return сохраненный сотрудник
+     * @throws IllegalArgumentException если сотрудник null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public Employee save(Employee employee) {
         Objects.requireNonNull(employee, "Сотрудник не может быть null");
-        if (employee.getId() == null && findByEmail(employee.getEmail()).isPresent()) {
-            log.error("Email {} уже существует", employee.getEmail());
-            throw new IllegalArgumentException("Email " + employee.getEmail() + " уже существует");
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            if (employee.getId() == null) {
+                session.persist(employee);
+            } else {
+                session.merge(employee);
+            }
+            session.getTransaction().commit();
+            return employee;
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для save");
+            }
+            log.error("Ошибка при сохранении сотрудника: {}", employee.getName(), e);
+            throw new RuntimeException("Не удалось сохранить сотрудника", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для save");
+            }
         }
-        if (employee.getId() == null) {
-            log.info("Сохранение нового сотрудника: {}", employee.getName());
-            getCurrentSession().persist(employee);
-        } else {
-            log.info("Обновление существующего сотрудника: {} (ID: {})", employee.getName(), employee.getId());
-            getCurrentSession().merge(employee);
-        }
-        return employee;
     }
 
+    /**
+     * Массовое сохранение сотрудников.
+     *
+     * @param employees список сотрудников
+     * @return список сохраненных сотрудников
+     * @throws IllegalArgumentException если список null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public <S extends Employee> List<S> saveAll(Iterable<S> employees) {
-        Objects.requireNonNull(employees, "Сущности не могут быть null");
-        List<S> result = new ArrayList<>();
-        for (S entity : employees) {
-            result.add((S) save(entity));
+        Objects.requireNonNull(employees, "Список сотрудников не может быть null");
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            List<S> saved = new ArrayList<>();
+            for (S employee : employees) {
+                if (employee.getId() == null) {
+                    session.persist(employee);
+                } else {
+                    session.merge(employee);
+                }
+                saved.add(employee);
+            }
+            session.getTransaction().commit();
+            return saved;
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для saveAll");
+            }
+            log.error("Ошибка при массовом сохранении сотрудников", e);
+            throw new RuntimeException("Не удалось сохранить сотрудников", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для saveAll");
+            }
         }
-        log.info("Сохранено {} сотрудников", result.size());
-        return result;
     }
 
+    /**
+     * Удаление сотрудника по ID.
+     *
+     * @param id идентификатор сотрудника
+     * @throws IllegalArgumentException если ID null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void deleteById(Long id) {
-        if (id == null) {
-            log.warn("Попытка удалить сотрудника с null ID");
-            return;
-        }
-        Employee employee = getCurrentSession().get(Employee.class, id);
-        if (employee != null) {
-            log.info("Удаление сотрудника с ID: {}", id);
-            getCurrentSession().remove(employee);
-        } else {
-            log.warn("Сотрудник с ID {} не найден для удаления", id);
+        Objects.requireNonNull(id, "ID сотрудника не может быть null");
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            Employee employee = session.get(Employee.class, id);
+            if (employee != null) {
+                session.remove(employee);
+            }
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для deleteById");
+            }
+            log.error("Ошибка при удалении сотрудника с ID: {}", id, e);
+            throw new RuntimeException("Не удалось удалить сотрудника", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для deleteById");
+            }
         }
     }
 
+    /**
+     * Удаление сотрудника.
+     *
+     * @param employee объект сотрудника
+     * @throws IllegalArgumentException если сотрудник null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void delete(Employee employee) {
-        if (employee == null || employee.getId() == null) {
-            log.warn("Попытка удалить null или недействительного сотрудника");
-            return;
-        }
-        log.info("Удаление сотрудника: {} (ID: {})", employee.getName(), employee.getId());
-        if (getCurrentSession().contains(employee)) {
-            getCurrentSession().remove(employee);
-        } else {
-            getCurrentSession().remove(getCurrentSession().merge(employee));
+        Objects.requireNonNull(employee, "Сотрудник не может быть null");
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            if (session.contains(employee)) {
+                session.remove(employee);
+            } else {
+                session.remove(session.merge(employee));
+            }
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для delete");
+            }
+            log.error("Ошибка при удалении сотрудника: {}", employee.getName(), e);
+            throw new RuntimeException("Не удалось удалить сотрудника", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для delete");
+            }
         }
     }
 
+    /**
+     * Удаление сотрудников по списку ID.
+     *
+     * @param ids список идентификаторов
+     * @throws IllegalArgumentException если список null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void deleteAllById(Iterable<? extends Long> ids) {
-        if (ids == null) {
-            log.warn("Попытка удалить сотрудников с null ID");
-            return;
-        }
+        Objects.requireNonNull(ids, "Список ID не может быть null");
         List<Long> idList = StreamSupport.stream(ids.spliterator(), false)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        if (!idList.isEmpty()) {
-            log.info("Удаление сотрудников с ID: {}", idList);
-            getCurrentSession()
-                    .createMutationQuery("DELETE FROM Employee e WHERE e.id IN :ids")
+        if (idList.isEmpty()) {
+            log.debug("Список ID пуст, удаление не выполняется");
+            return;
+        }
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            session.createMutationQuery("DELETE FROM Employee e WHERE e.id IN :ids")
                     .setParameter("ids", idList)
                     .executeUpdate();
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для deleteAllById");
+            }
+            log.error("Ошибка при массовом удалении сотрудников по ID", e);
+            throw new RuntimeException("Не удалось удалить сотрудников", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для deleteAllById");
+            }
         }
     }
 
+    /**
+     * Удаление списка сотрудников.
+     *
+     * @param employees список сотрудников
+     * @throws IllegalArgumentException если список null
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public void deleteAll(Iterable<? extends Employee> employees) {
-        if (employees == null) {
-            log.warn("Попытка удалить null сущности");
-            return;
-        }
+        Objects.requireNonNull(employees, "Список сотрудников не может быть null");
         List<Long> ids = StreamSupport.stream(employees.spliterator(), false)
                 .filter(Objects::nonNull)
                 .map(Employee::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        if (!ids.isEmpty()) {
-            log.info("Удаление {} сотрудников", ids.size());
-            deleteAllById(ids);
+        deleteAllById(ids);
+    }
+
+    /**
+     * Удаление всех сотрудников.
+     */
+    @Override
+    public void deleteAll() {
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            session.createMutationQuery("DELETE FROM Employee").executeUpdate();
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для deleteAll");
+            }
+            log.error("Ошибка при удалении всех сотрудников", e);
+            throw new RuntimeException("Не удалось удалить всех сотрудников", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для deleteAll");
+            }
         }
     }
 
+    /**
+     * Проверка существования сотрудника по ID.
+     *
+     * @param id идентификатор сотрудника
+     * @return true, если сотрудник существует, иначе false
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
-    public void deleteAll() {
-        log.info("Удаление всех сотрудников");
-        getCurrentSession()
-                .createMutationQuery("DELETE FROM Employee")
-                .executeUpdate();
-    }
-
-    @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public boolean existsById(Long id) {
         if (id == null) {
+            log.warn("Попытка проверить существование сотрудника с null ID");
             return false;
         }
-        log.debug("Проверка существования сотрудника с ID: {}", id);
-        return getCurrentSession()
-                .createQuery("SELECT COUNT(e) > 0 FROM Employee e WHERE e.id = :id", Boolean.class)
-                .setParameter("id", id)
-                .getSingleResult();
+        Session session = getSession();
+        try {
+            return session.createQuery("SELECT COUNT(*) > 0 FROM Employee e WHERE e.id = :id", Boolean.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+        } catch (Exception e) {
+            log.error("Ошибка при проверке существования сотрудника с ID: {}", id, e);
+            return false;
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для existsById");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по части имени.
+     *
+     * @param namePart часть имени
+     * @return список сотрудников или все сотрудники, если namePart пустой
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findByNameContaining(String namePart) {
         if (namePart == null || namePart.isBlank()) {
-            log.debug("Часть имени null или пустая, возвращаются все сотрудники");
+            log.debug("Часть имени не указана, возвращаются все сотрудники");
             return findAll();
         }
-        log.debug("Получение сотрудников с именем, содержащим: {}", namePart);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
+                    .setParameter("namePart", "%" + namePart + "%")
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по имени: {}", namePart, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByNameContaining");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по части имени с пагинацией.
+     *
+     * @param namePart часть имени
+     * @param offset   начальная позиция
+     * @param limit    количество записей
+     * @return список сотрудников или пустой список при ошибке
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findByNameContainingPaginated(String namePart, int offset, int limit) {
+        if (offset < 0 || limit <= 0) {
+            log.warn("Некорректные параметры пагинации: offset={}, limit={}", offset, limit);
+            throw new IllegalArgumentException("Некорректные параметры пагинации");
+        }
         if (namePart == null || namePart.isBlank()) {
-            log.debug("Часть имени null или пустая, возвращаются все сотрудники с пагинацией");
             return findAllPaginated(offset, limit);
         }
-        log.debug("Получение сотрудников с именем, содержащим: {} с пагинацией", namePart);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
-                .setParameter("namePart", "%" + namePart + "%")
-                .setFirstResult(offset)
-                .setMaxResults(limit)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
+                    .setParameter("namePart", "%" + namePart + "%")
+                    .setFirstResult(offset)
+                    .setMaxResults(limit)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по имени с пагинацией: {}", namePart, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByNameContainingPaginated");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по навыку.
+     *
+     * @param skill навык
+     * @return список сотрудников или пустой список, если навык null
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findBySkill(Skills skill) {
         if (skill == null) {
-            log.debug("Навык null, возвращаются все сотрудники");
-            return findAll();
+            log.warn("Попытка поиска сотрудников с null навыком");
+            return Collections.emptyList();
         }
-        log.debug("Получение сотрудников с навыком: {}", skill);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE :skill MEMBER OF e.skills", Employee.class)
-                .setParameter("skill", skill)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e WHERE :skill MEMBER OF e.skills", Employee.class)
+                    .setParameter("skill", skill)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по навыку: {}", skill, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findBySkill");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по списку навыков.
+     *
+     * @param skills список навыков
+     * @return список сотрудников или пустой список, если список навыков пустой
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findBySkills(List<Skills> skills) {
         if (skills == null || skills.isEmpty()) {
-            log.debug("Список навыков null или пуст, возвращаются все сотрудники");
-            return findAll();
+            log.warn("Попытка поиска сотрудников с пустым списком навыков");
+            return Collections.emptyList();
         }
-        log.debug("Получение сотрудников с навыками: {}", skills);
-        return getCurrentSession()
-                .createQuery("SELECT DISTINCT e FROM Employee e JOIN e.skills s WHERE s IN :skills", Employee.class)
-                .setParameter("skills", skills)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e JOIN e.skills s WHERE s IN :skills", Employee.class)
+                    .setParameter("skills", skills)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по списку навыков: {}", skills, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findBySkills");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по категории навыков.
+     *
+     * @param category категория навыков
+     * @return список сотрудников или пустой список, если категория пустая
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findBySkillCategory(String category) {
         if (category == null || category.isBlank()) {
-            log.debug("Категория null или пустая, возвращаются все сотрудники");
-            return findAll();
+            log.warn("Попытка поиска сотрудников с пустой категорией навыков");
+            return Collections.emptyList();
         }
-        log.debug("Получение сотрудников с категорией: {}", category);
-        return getCurrentSession()
-                .createQuery("SELECT DISTINCT e FROM Employee e JOIN e.skills s WHERE s.category = :category", Employee.class)
-                .setParameter("category", category)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e JOIN e.skills s WHERE s.category = :category", Employee.class)
+                    .setParameter("category", category)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по категории навыков: {}", category, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findBySkillCategory");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по части email.
+     *
+     * @param emailPart часть email
+     * @return список сотрудников или все сотрудники, если emailPart пустой
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findByEmailContaining(String emailPart) {
         if (emailPart == null || emailPart.isBlank()) {
-            log.debug("Часть email null или пустая, возвращаются все сотрудники");
+            log.debug("Часть email не указана, возвращаются все сотрудники");
             return findAll();
         }
-        log.debug("Получение сотрудников с email, содержащим: {}", emailPart);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE LOWER(e.email) LIKE LOWER(:emailPart)", Employee.class)
-                .setParameter("emailPart", "%" + emailPart + "%")
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e WHERE LOWER(e.email) LIKE LOWER(:emailPart)", Employee.class)
+                    .setParameter("emailPart", "%" + emailPart + "%")
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по email: {}", emailPart, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByEmailContaining");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по части номера телефона.
+     *
+     * @param phonePart часть номера телефона
+     * @return список сотрудников или все сотрудники, если phonePart пустой
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findByPhoneNumberContaining(String phonePart) {
         if (phonePart == null || phonePart.isBlank()) {
-            log.debug("Часть номера телефона null или пустая, возвращаются все сотрудники");
+            log.debug("Часть номера телефона не указана, возвращаются все сотрудники");
             return findAll();
         }
-        log.debug("Получение сотрудников с номером телефона, содержащим: {}", phonePart);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE e.phoneNumber LIKE :phonePart", Employee.class)
-                .setParameter("phonePart", "%" + phonePart + "%")
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Employee e WHERE e.phoneNumber LIKE :phonePart", Employee.class)
+                    .setParameter("phonePart", "%" + phonePart + "%")
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по номеру телефона: {}", phonePart, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByPhoneNumberContaining");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по школе и навыку.
+     *
+     * @param school название школы
+     * @param skill  навык
+     * @return список сотрудников или пустой список, если параметры пустые
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findBySchoolAndSkill(String school, Skills skill) {
         if ((school == null || school.isBlank()) && skill == null) {
-            log.debug("Школа и навык null или пустые, возвращаются все сотрудники");
+            log.debug("Школа и навык не указаны, возвращаются все сотрудники");
             return findAll();
         }
-        String query = "SELECT e FROM Employee e WHERE " +
-                (school != null && !school.isBlank() ? "e.school LIKE :school" : "1=1") +
-                (skill != null ? " AND :skill MEMBER OF e.skills" : "");
-        log.debug("Получение сотрудников с школой: {} и навыком: {}", school, skill);
-        var hqlQuery = getCurrentSession().createQuery(query, Employee.class);
+        StringBuilder query = new StringBuilder("FROM Employee e WHERE 1=1");
         if (school != null && !school.isBlank()) {
-            hqlQuery.setParameter("school", "%" + school + "%");
+            query.append(" AND e.school LIKE :school");
         }
         if (skill != null) {
-            hqlQuery.setParameter("skill", skill);
+            query.append(" AND :skill MEMBER OF e.skills");
         }
-        return hqlQuery.getResultList();
+        Session session = getSession();
+        try {
+            var hqlQuery = session.createQuery(query.toString(), Employee.class);
+            if (school != null && !school.isBlank()) {
+                hqlQuery.setParameter("school", "%" + school + "%");
+            }
+            if (skill != null) {
+                hqlQuery.setParameter("skill", skill);
+            }
+            return hqlQuery.getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по школе и навыку: school={}, skill={}", school, skill, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findBySchoolAndSkill");
+            }
+        }
     }
 
+    /**
+     * Поиск сотрудников по имени или email.
+     *
+     * @param name  имя
+     * @param email email
+     * @return список сотрудников или все сотрудники, если параметры пустые
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<Employee> findByNameOrEmail(String name, String email) {
         if ((name == null || name.isBlank()) && (email == null || email.isBlank())) {
-            log.debug("Имя и email null или пустые, возвращаются все сотрудники");
+            log.debug("Имя и email не указаны, возвращаются все сотрудники");
             return findAll();
         }
-        log.debug("Получение сотрудников с именем: {} или email: {}", name, email);
-        return getCurrentSession()
-                .createQuery("SELECT e FROM Employee e WHERE " +
-                        "(:name IS NULL OR LOWER(e.name) LIKE LOWER(:name)) OR " +
-                        "(:email IS NULL OR LOWER(e.email) LIKE LOWER(:email))", Employee.class)
-                .setParameter("name", name != null ? "%" + name + "%" : null)
-                .setParameter("email", email != null ? "%" + email + "%" : null)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery(
+                            "FROM Employee e WHERE (:name IS NULL OR LOWER(e.name) LIKE LOWER(:name)) OR " +
+                                    "(:email IS NULL OR LOWER(e.email) LIKE LOWER(:email))", Employee.class)
+                    .setParameter("name", name != null ? "%" + name + "%" : null)
+                    .setParameter("email", email != null ? "%" + email + "%" : null)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников по имени или email: name={}, email={}", name, email, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findByNameOrEmail");
+            }
+        }
     }
 
+    /**
+     * Получение всех уникальных школ.
+     *
+     * @return список уникальных названий школ или пустой список при ошибке
+     */
     @Override
-    @Transactional(readOnly = true, propagation = Propagation.REQUIRED)
     public List<String> findAllDistinctSchools() {
-        log.debug("Получение всех уникальных школ");
-        return getCurrentSession()
-                .createQuery("SELECT DISTINCT e.school FROM Employee e WHERE e.school IS NOT NULL", String.class)
-                .getResultList();
+        Session session = getSession();
+        try {
+            return session.createQuery("SELECT DISTINCT e.school FROM Employee e WHERE e.school IS NOT NULL", String.class)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при получении уникальных школ", e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findAllDistinctSchools");
+            }
+        }
     }
 
+    /**
+     * Обновление email сотрудника по ID.
+     *
+     * @param id       идентификатор сотрудника
+     * @param newEmail новый email
+     * @return количество обновленных записей
+     * @throws IllegalArgumentException если параметры null или пустые
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public int updateEmailById(Long id, String newEmail) {
-        if (id == null || newEmail == null || newEmail.isBlank()) {
-            log.warn("Недействительные параметры для updateEmailById: id={}, newEmail={}", id, newEmail);
-            return 0;
+        Objects.requireNonNull(id, "ID сотрудника не может быть null");
+        Objects.requireNonNull(newEmail, "Новый email не может быть null");
+        if (newEmail.isBlank()) {
+            log.warn("Попытка обновления email с пустым значением для ID: {}", id);
+            throw new IllegalArgumentException("Email не может быть пустым");
         }
-        log.info("Обновление email для сотрудника ID: {} на {}", id, newEmail);
-        return getCurrentSession()
-                .createMutationQuery("UPDATE Employee e SET e.email = :email WHERE e.id = :id")
-                .setParameter("email", newEmail)
-                .setParameter("id", id)
-                .executeUpdate();
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            int updated = session.createMutationQuery("UPDATE Employee e SET e.email = :email WHERE e.id = :id")
+                    .setParameter("email", newEmail)
+                    .setParameter("id", id)
+                    .executeUpdate();
+            session.getTransaction().commit();
+            return updated;
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для updateEmailById");
+            }
+            log.error("Ошибка при обновлении email для сотрудника с ID: {}", id, e);
+            throw new RuntimeException("Не удалось обновить email", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для updateEmailById");
+            }
+        }
     }
 
+    /**
+     * Удаление сотрудников по школе.
+     *
+     * @param school название школы
+     * @return количество удаленных записей
+     * @throws IllegalArgumentException если школа null или пустая
+     */
     @Override
-    @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public int deleteBySchool(String school) {
-        if (school == null || school.isBlank()) {
-            log.warn("Попытка удалить сотрудников с null или пустой школой");
-            return 0;
+        Objects.requireNonNull(school, "Школа не может быть null");
+        if (school.isBlank()) {
+            log.warn("Попытка удаления сотрудников с пустой школой");
+            throw new IllegalArgumentException("Школа не может быть пустой");
         }
-        log.info("Удаление сотрудников с школой: {}", school);
-        return getCurrentSession()
-                .createMutationQuery("DELETE FROM Employee e WHERE e.school = :school")
-                .setParameter("school", school)
-                .executeUpdate();
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            int deleted = session.createMutationQuery("DELETE FROM Employee e WHERE e.school = :school")
+                    .setParameter("school", school)
+                    .executeUpdate();
+            session.getTransaction().commit();
+            return deleted;
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для deleteBySchool");
+            }
+            log.error("Ошибка при удалении сотрудников по школе: {}", school, e);
+            throw new RuntimeException("Не удалось удалить сотрудников", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для deleteBySchool");
+            }
+        }
+    }
+
+    /**
+     * Закрытие SessionFactory при уничтожении бина.
+     */
+    @PreDestroy
+    public void close() {
+        if (sessionFactory != null && !sessionFactory.isClosed()) {
+            sessionFactory.close();
+            log.info("SessionFactory закрыт");
+        }
     }
 }

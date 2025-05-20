@@ -1,7 +1,9 @@
 package org.example.model;
 
-import lombok.*;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -19,43 +21,51 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Имя не может быть пустым")
+    @Size(max = 255, message = "Имя не должно превышать 255 символов")
     @Column(name = "name", nullable = false)
     private String name;
 
+    @NotBlank(message = "Email не может быть пустым")
+    @Email(message = "Некорректный формат email")
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Pattern(regexp = "\\+?[0-9]{10,15}", message = "Неверный формат телефона")
     @Column(name = "phone_number")
     private String phoneNumber;
 
+    @Size(max = 1000, message = "Информация об образовании не должна превышать 1000 символов")
     @Column(name = "school")
     private String school;
 
-    @Transient // Игнорировать поле в базе данных
+    @Size(max = 500, message = "Информация о себе не должна превышать 500 символов")
+    @Column(name = "about")
     private String about;
-
-    @Transient // Игнорировать поле в базе данных
-    private String category;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Size(max = 255, message = "Путь к фото не должен превышать 255 символов")
     @Column(name = "photo_path")
     private String photoPath;
 
+    @Size(max = 2000, message = "Резюме не должно превышать 2000 символов")
     @Column(name = "resume")
     private String resume;
 
+    @Size(max = 255, message = "Telegram не должен превышать 255 символов")
     @Column(name = "telegram")
     private String telegram;
 
     @ElementCollection
     @CollectionTable(name = "employee_skills", joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
-    private Set<String> skills = new HashSet<>(); // Используйте Set вместо List
+    @Convert(converter = SkillsConverter.class)
+    private Set<Skills> skills = new HashSet<>();
 
+    @Valid
     @Builder.Default
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Education> educations = new ArrayList<>();
-
 }

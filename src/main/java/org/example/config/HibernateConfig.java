@@ -1,4 +1,4 @@
-package org.example.config;
+/*package org.example.config;
 
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.SessionFactory;
@@ -62,4 +62,4 @@ public class HibernateConfig {
         transactionManager.setNestedTransactionAllowed(true);
         return transactionManager;
     }
-}
+}*/

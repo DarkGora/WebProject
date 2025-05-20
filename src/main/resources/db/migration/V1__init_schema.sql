@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS employees (
                                          email VARCHAR(255) NOT NULL UNIQUE,
                                          telegram VARCHAR(255),
                                          resume TEXT,
-                                         school VARCHAR(255),
+                                         school TEXT,
+                                         about TEXT,
                                          photo_path VARCHAR(255),
                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,15 +33,17 @@ CREATE TABLE IF NOT EXISTS educations (
 CREATE INDEX IF NOT EXISTS idx_educations_employee_id ON educations (employee_id);
 
 -- Insert initial data
-INSERT INTO employees (name, phone_number, email, telegram, resume, school, photo_path)
+INSERT INTO employees (name, phone_number, email, telegram, resume, school, about, photo_path)
 VALUES
     ('Евушко Андрей', '+375336980732', 'anonim@mail.ru', '@ansgoo',
      'Я разработчик. Родом из Бреста в Беларуси. В поисках работы на языке программирования Java. Предпочитаю работать онлайн.',
      '1. СШ №9. 2. УО Малоритский ГПЛ СП. 3. н/в IT-Шаг.',
+     'Разработчик Java, увлечен созданием масштабируемых приложений.',
      '/images/2821755862.jpg'),
     ('Вася Пупкин', '+375298211966', 'test@mail.ru', '@test',
      'Тестовое резюме.',
      'Тестовая школа',
+     'Тестировщик с опытом автоматизации.',
      '/images/2821755862.jpg')
 ON CONFLICT (email) DO NOTHING;
 
