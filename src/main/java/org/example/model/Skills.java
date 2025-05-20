@@ -37,7 +37,7 @@ public enum Skills {
     JUNIT("Testing"),
     MOCKITO("Testing"),
     POSTMAN("Tools"),
-    TESTING("Testing"); // Добавлено для соответствия SQL-данным
+    TESTING("Testing");
 
     private final String category;
 

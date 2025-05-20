@@ -25,6 +25,5 @@
     <!-- Маппинг сущностей -->
     <mapping class="org.example.model.Employee"/>
     <mapping class="org.example.model.Education"/>
-    <mapping class="org.example.model.Skills"/>
   </session-factory>
 </hibernate-configuration>

@@ -6,25 +6,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.model.Employee;
 import org.example.service.EmployeeService;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Контроллер для управления сотрудниками через веб-интерфейс.
+ */
 @Slf4j
 @Controller
 @RequiredArgsConstructor
 public class EmployeeController {
     private final EmployeeService employeeService;
 
+    /**
+     * Отображение списка сотрудников с пагинацией.
+     *
+     * @param page  номер страницы (начиная с 0)
+     * @param model модель для передачи данных в шаблон
+     * @return имя шаблона для списка сотрудников
+     */
     @GetMapping("/")
-    @Transactional(readOnly = true)
     public String listEmployees(@RequestParam(defaultValue = "0") int page, Model model) {
         int pageSize = 10;
         try {
@@ -36,146 +42,154 @@ public class EmployeeController {
             model.addAttribute("employees", employees);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
+        } catch (IllegalArgumentException e) {
+            log.error("Некорректные параметры пагинации для страницы {}: {}", page, e.getMessage());
+            model.addAttribute("error", "Некорректные параметры пагинации");
         } catch (Exception e) {
-            log.error("Ошибка при загрузке сотрудников для страницы {}: {}", page, e.getMessage(), e);
-            model.addAttribute("error", "Ошибка при загрузке списка сотрудников: " + e.getMessage());
+            log.error("Ошибка при загрузке сотрудников для страницы {}: {}", page, e.getMessage());
+            model.addAttribute("error", "Ошибка при загрузке списка сотрудников");
         }
         return "employees";
     }
 
+    /**
+     * Отображение формы для создания нового сотрудника.
+     *
+     * @param model модель для передачи данных в шаблон
+     * @return имя шаблона для формы редактирования
+     */
     @GetMapping("/employee/new")
-    @Transactional(readOnly = true)
     public String newEmployee(Model model) {
         model.addAttribute("employee", new Employee());
         log.debug("Открыта форма для нового сотрудника");
         return "employee-edit";
     }
 
+    /**
+     * Отображение формы для создания или редактирования сотрудника.
+     *
+     * @param id                 идентификатор сотрудника (опционально)
+     * @param model              модель для передачи данных в шаблон
+     * @param redirectAttributes атрибуты для перенаправления
+     * @return имя шаблона или перенаправление
+     */
     @GetMapping({"/employee/add", "/employee/edit/{id}"})
-    @Transactional(readOnly = true)
     public String editEmployee(@PathVariable(required = false) Long id,
                                Model model,
                                RedirectAttributes redirectAttributes) {
         try {
             Employee employee;
-
             if (id != null) {
-                log.info("Запрос на редактирование сотрудника с ID: {}", id);
-                Optional<Employee> employeeOpt = employeeService.findById(id);
-
-                if (employeeOpt.isEmpty()) {
-                    log.warn("Сотрудник с ID {} не найден", id);
-                    redirectAttributes.addFlashAttribute("error", "Сотрудник не найден");
-                    return "redirect:/employees";
-                }
-
-                employee = employeeOpt.get();
+                log.debug("Запрос на редактирование сотрудника с ID: {}", id);
+                employee = employeeService.findById(id)
+                        .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
             } else {
-                log.info("Запрос на создание нового сотрудника");
+                log.debug("Запрос на создание нового сотрудника");
                 employee = new Employee();
-                // Инициализация полей при необходимости
-                employee.setEducations(new ArrayList<>());
             }
-
             model.addAttribute("employee", employee);
             return "employee-edit";
-
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при открытии формы сотрудника с ID {}: {}", id, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
         } catch (Exception e) {
-            log.error("Ошибка при открытии формы сотрудника", e);
-            redirectAttributes.addFlashAttribute("error", "Произошла ошибка: " + e.getMessage());
-            return "redirect:/employees";
+            log.error("Ошибка при открытии формы сотрудника с ID {}: {}", id, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Произошла ошибка при загрузке формы");
+            return "redirect:/";
         }
     }
 
+    /**
+     * Отображение детальной информации о сотруднике.
+     *
+     * @param id        идентификатор сотрудника
+     * @param model     модель для передачи данных в шаблон
+     * @param redirect  атрибуты для перенаправления
+     * @return имя шаблона или перенаправление
+     */
     @GetMapping("/employee/{id}")
-    @Transactional(readOnly = true)
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
-        Optional<Employee> employee = employeeService.findById(id);
-        if (employee.isPresent()) {
-            model.addAttribute("employee", employee.get());
+        try {
+            Employee employee = employeeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
+            model.addAttribute("employee", employee);
             return "employee-details";
+        } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник с ID {} не найден", id);
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке сотрудника с ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", "Ошибка при загрузке сотрудника");
+            return "redirect:/";
         }
-        redirect.addFlashAttribute("error", "Сотрудник с ID " + id + " не найден");
-        log.warn("Сотрудник с ID {} не найден", id);
-        return "redirect:/";
     }
 
+    /**
+     * Сохранение или обновление сотрудника.
+     *
+     * @param employee  объект сотрудника
+     * @param result    результат валидации
+     * @param photo     файл фотографии (опционально)
+     * @param redirect  атрибуты для перенаправления
+     * @return перенаправление
+     */
     @PostMapping("/employee/save")
     public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee,
                                BindingResult result,
                                @RequestParam(value = "photo", required = false) MultipartFile photo,
                                RedirectAttributes redirect) {
         if (result.hasErrors()) {
+            log.debug("Ошибки валидации при сохранении сотрудника: {}", result.getAllErrors());
             return "employee-edit";
         }
 
         try {
             Employee savedEmployee;
             if (employee.getId() == null) {
+                log.info("Сохранение нового сотрудника: {}", employee.getName());
                 savedEmployee = employeeService.save(employee, photo);
                 redirect.addFlashAttribute("success", "Сотрудник успешно добавлен");
             } else {
+                log.info("Обновление сотрудника с ID: {}", employee.getId());
                 savedEmployee = employeeService.update(employee.getId(), employee, photo);
                 redirect.addFlashAttribute("success", "Сотрудник успешно обновлён");
             }
-            return "redirect:/employee/" + savedEmployee.getId(); // Перенаправляем на страницу сотрудника
+            return "redirect:/employee/" + savedEmployee.getId();
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при сохранении сотрудника: {}", e.getMessage());
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/employee/" + (employee.getId() != null ? employee.getId() : "new");
         } catch (Exception e) {
-            log.error("Ошибка сохранения сотрудника", e);
-            redirect.addFlashAttribute("error", "Ошибка сохранения: " + e.getMessage());
-            return "redirect:/employee/add"; // Возвращаем на форму добавления при ошибке
+            log.error("Ошибка при сохранении сотрудника: {}", e.getMessage());
+            redirect.addFlashAttribute("error", "Ошибка при сохранении сотрудника");
+            return "redirect:/employee/" + (employee.getId() != null ? employee.getId() : "new");
         }
     }
 
-    @PostMapping("/employee/update/{id}")
-    @Transactional
-    public String updateEmployee(@PathVariable Long id,
-                                 @Valid @ModelAttribute("employee") Employee employee,
-                                 BindingResult result,
-                                 @RequestParam("photo") MultipartFile photo,
-                                 RedirectAttributes redirect,
-                                 Model model) {
-        if (result.hasErrors()) {
-            log.debug("Ошибки валидации при обновлении сотрудника с ID {}: {}", id, result.getAllErrors());
-            model.addAttribute("employee", employee);
-            return "employee-edit";
-        }
-
-        try {
-            if (!employeeService.findById(id).isPresent()) {
-                log.error("Сотрудник с ID {} не найден", id);
-                redirect.addFlashAttribute("error", "Сотрудник с ID " + id + " не найден");
-                return "redirect:/";
-            }
-            employee.setId(id);
-            employeeService.save(employee, photo);
-            redirect.addFlashAttribute("success", "Сотрудник успешно обновлён!");
-            log.info("Успешно обновлён сотрудник с ID: {}", id);
-        } catch (Exception e) {
-            log.error("Ошибка при обновлении сотрудника с ID {}: {}", id, e.getMessage(), e);
-            result.reject("global", "Ошибка при обновлении сотрудника: " + e.getMessage());
-            model.addAttribute("employee", employee);
-            return "employee-edit";
-        }
-        return "redirect:/employee/" + id;
-    }
-
+    /**
+     * Удаление сотрудника.
+     *
+     * @param id        идентификатор сотрудника
+     * @param redirect  атрибуты для перенаправления
+     * @return перенаправление
+     */
     @PostMapping("/employee/delete/{id}")
-    @Transactional
     public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
-            if (!employeeService.findById(id).isPresent()) {
-                log.error("Сотрудник с ID {} не найден для удаления", id);
-                redirect.addFlashAttribute("error", "Сотрудник с ID " + id + " не найден");
-                return "redirect:/";
-            }
+            log.info("Удаление сотрудника с ID: {}", id);
             employeeService.delete(id);
-            redirect.addFlashAttribute("success", "Сотрудник успешно удалён!");
-            log.info("Успешно удалён сотрудник с ID: {}", id);
+            redirect.addFlashAttribute("success", "Сотрудник успешно удалён");
+            return "redirect:/";
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
         } catch (Exception e) {
-            log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage(), e);
-            redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника: " + e.getMessage());
+            log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника");
             return "redirect:/";
         }
-        return "redirect:/";
     }
 }
