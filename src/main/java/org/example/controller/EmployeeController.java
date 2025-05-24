@@ -181,15 +181,15 @@ public class EmployeeController {
             log.info("Удаление сотрудника с ID: {}", id);
             employeeService.delete(id);
             redirect.addFlashAttribute("success", "Сотрудник успешно удалён");
-            return "redirect:/";
+            return "redirect:";
         } catch (IllegalArgumentException e) {
             log.warn("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", e.getMessage());
-            return "redirect:/";
+            return "redirect:";
         } catch (Exception e) {
             log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника");
-            return "redirect:/";
+            return "redirect:";
         }
     }
 }

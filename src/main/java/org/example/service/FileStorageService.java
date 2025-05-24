@@ -10,7 +10,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Сервис для управления хранением и удалением файлов (например, фотографий сотрудников).
@@ -46,7 +49,7 @@ public class FileStorageService {
      * Сохранение файла в директории загрузки.
      *
      * @param file файл для сохранения (не null и не пустой)
-     * @return абсолютный путь к сохраненному файлу или null, если файл не передан
+     * @return имя сохраненного файла или null, если файл не передан
      * @throws IllegalArgumentException если файл имеет недопустимый формат или слишком большой
      * @throws IOException             если произошла ошибка при сохранении файла
      */
@@ -56,51 +59,79 @@ public class FileStorageService {
             return null;
         }
 
+        validateFile(file);
+
+        String fileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
+        Path filePath = uploadPath.resolve(fileName).toAbsolutePath().normalize();
+
+        validateFilePath(filePath);
+
+        try (var inputStream = file.getInputStream()) {
+            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        log.info("Stored file: {}", filePath);
+        return fileName;
+    }
+
+    /**
+     * Удаление файла по указанному имени.
+     *
+     * @param fileName имя файла (может быть null)
+     * @throws IOException если произошла ошибка при удалении файла
+     */
+    public void deleteFile(String fileName) throws IOException {
+        if (fileName == null || fileName.isBlank()) {
+            log.debug("No file name provided for deletion");
+            return;
+        }
+
+        Path path = uploadPath.resolve(fileName).toAbsolutePath().normalize();
+        validateFilePath(path);
+
+        Files.deleteIfExists(path);
+        log.info("Deleted file: {}", path);
+    }
+
+    /**
+     * Получение полного пути к файлу по его имени.
+     *
+     * @param fileName имя файла
+     * @return полный путь к файлу
+     * @throws IllegalArgumentException если имя файла недопустимо
+     */
+    public Path getFilePath(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("Имя файла не может быть пустым");
+        }
+
+        Path path = uploadPath.resolve(fileName).toAbsolutePath().normalize();
+        validateFilePath(path);
+        return path;
+    }
+
+    private void validateFile(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
             log.error("Invalid file format: {}", contentType);
             throw new IllegalArgumentException("Недопустимый формат файла. Используйте JPG, PNG или WEBP.");
         }
+
         if (file.getSize() > MAX_FILE_SIZE) {
             log.error("File too large: {} bytes", file.getSize());
             throw new IllegalArgumentException("Файл слишком большой. Максимальный размер: 5MB.");
         }
-
-        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed";
-        String fileName = System.currentTimeMillis() + "_" + originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
-        Path filePath = uploadPath.resolve(fileName).toAbsolutePath().normalize();
-
-        // Проверка, что путь находится внутри uploadPath
-        if (!filePath.startsWith(uploadPath)) {
-            log.error("Attempted to store file outside upload directory: {}", filePath);
-            throw new IllegalArgumentException("Недопустимый путь файла");
-        }
-
-        Files.write(filePath, file.getBytes());
-        log.info("Stored file: {}", filePath);
-        return filePath.toString();
     }
 
-    /**
-     * Удаление файла по указанному пути.
-     *
-     * @param filePath путь к файлу (может быть null)
-     * @throws IOException если произошла ошибка при удалении файла
-     */
-    public void deleteFile(String filePath) throws IOException {
-        if (filePath == null) {
-            log.debug("No file path provided for deletion");
-            return;
-        }
-
-        Path path = Paths.get(filePath).toAbsolutePath().normalize();
-        // Проверка, что путь находится внутри uploadPath
-        if (!path.startsWith(uploadPath)) {
-            log.error("Attempted to delete file outside upload directory: {}", path);
+    private void validateFilePath(Path filePath) {
+        if (!filePath.startsWith(uploadPath)) {
+            log.error("Attempted to access file outside upload directory: {}", filePath);
             throw new IllegalArgumentException("Недопустимый путь файла");
         }
+    }
 
-        Files.deleteIfExists(path);
-        log.info("Deleted file: {}", path);
+    private String generateUniqueFileName(String originalFilename) {
+        String safeFileName = originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
+        return UUID.randomUUID() + "_" + safeFileName;
     }
 }
