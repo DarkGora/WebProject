@@ -130,6 +130,7 @@ public class FileStorageService {
         }
     }
 
+
     private String generateUniqueFileName(String originalFilename) {
         String safeFileName = originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
         return UUID.randomUUID() + "_" + safeFileName;
