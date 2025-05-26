@@ -8,7 +8,6 @@ import org.example.model.Employee;
 import org.example.model.Education;
 import org.example.repository.EmployeeRepository;
 import org.example.repository.EducationRepository;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,14 +27,6 @@ public class EmployeeService {
     private final EducationRepository educationRepository;
     private final FileStorageService fileStorageService;
 
-    /**
-     * Получение списка сотрудников с пагинацией.
-     *
-     * @param offset начальная позиция (неотрицательная)
-     * @param limit  количество записей (положительное)
-     * @return список сотрудников
-     * @throws IllegalArgumentException если offset < 0 или limit <= 0
-     */
     @Transactional(readOnly = true)
     public List<Employee> findAll(int offset, int limit) {
         if (offset < 0 || limit <= 0) {
@@ -46,14 +37,6 @@ public class EmployeeService {
         return employeeRepository.findAllPaginated(offset, limit);
     }
 
-    /**
-     * Получение списка сотрудников с сортировкой.
-     *
-     * @param sortField поле для сортировки (name, email, phonenumber, school, createdat)
-     * @param ascending направление сортировки (true - по возрастанию, false - по убыванию)
-     * @return список сотрудников
-     * @throws IllegalArgumentException если sortField некорректное
-     */
     @Transactional(readOnly = true)
     public List<Employee> findAllSorted(String sortField, boolean ascending) {
         validateSortField(sortField);
@@ -61,13 +44,6 @@ public class EmployeeService {
         return employeeRepository.findAllSorted(sortField, ascending);
     }
 
-    /**
-     * Поиск сотрудника по ID.
-     *
-     * @param id идентификатор сотрудника (не null)
-     * @return Optional с сотрудником или пустой, если не найден
-     * @throws IllegalArgumentException если id null
-     */
     @Transactional(readOnly = true)
     public Optional<Employee> findById(Long id) {
         if (id == null) {
@@ -78,15 +54,6 @@ public class EmployeeService {
         return employeeRepository.findById(id);
     }
 
-    /**
-     * Поиск сотрудников по части имени с пагинацией.
-     *
-     * @param namePart подстрока для поиска в имени
-     * @param offset   начальная позиция (неотрицательная)
-     * @param limit    количество записей (положительное)
-     * @return список сотрудников или пустой список, если namePart null или пустой
-     * @throws IllegalArgumentException если offset < 0 или limit <= 0
-     */
     @Transactional(readOnly = true)
     public List<Employee> findByNameContaining(String namePart, int offset, int limit) {
         if (offset < 0 || limit <= 0) {
@@ -102,11 +69,6 @@ public class EmployeeService {
         return employeeRepository.findByNameContainingPaginated(namePart, offset, limit);
     }
 
-    /**
-     * Подсчет общего количества сотрудников.
-     *
-     * @return количество сотрудников
-     */
     @Transactional(readOnly = true)
     public long count() {
         log.debug("Подсчет сотрудников, прокси репозитория: {}",
@@ -114,15 +76,6 @@ public class EmployeeService {
         return employeeRepository.count();
     }
 
-    /**
-     * Сохранение нового сотрудника с обработкой фото и образований.
-     *
-     * @param employee сотрудник для сохранения (не null)
-     * @param photo    файл фотографии (может быть null)
-     * @return сохраненный сотрудник
-     * @throws IllegalArgumentException если employee null
-     * @throws RuntimeException        если произошла ошибка при сохранении файла
-     */
     @Transactional
     public Employee save(@NotNull @Valid Employee employee, MultipartFile photo) {
         Objects.requireNonNull(employee, "Сотрудник не может быть null");
@@ -150,16 +103,6 @@ public class EmployeeService {
         }
     }
 
-    /**
-     * Обновление существующего сотрудника.
-     *
-     * @param id              идентификатор сотрудника (не null)
-     * @param employeeDetails данные для обновления (не null)
-     * @param photo           файл фотографии (может быть null)
-     * @return обновленный сотрудник
-     * @throws IllegalArgumentException если id или employeeDetails null, или сотрудник не найден
-     * @throws RuntimeException        если произошла ошибка при сохранении файла
-     */
     @Transactional
     public Employee update(@NotNull Long id, @NotNull @Valid Employee employeeDetails, MultipartFile photo) {
         Objects.requireNonNull(id, "ID не может быть null");
@@ -170,14 +113,12 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
 
         try {
-            // Обновляем поля
             employee.setName(employeeDetails.getName());
             employee.setEmail(employeeDetails.getEmail());
             employee.setPhoneNumber(employeeDetails.getPhoneNumber());
             employee.setSchool(employeeDetails.getSchool());
             employee.setSkills(employeeDetails.getSkills());
 
-            // Обработка фото
             if (photo != null && !photo.isEmpty()) {
                 if (employee.getPhotoPath() != null) {
                     fileStorageService.deleteFile(employee.getPhotoPath());
@@ -185,7 +126,6 @@ public class EmployeeService {
                 employee.setPhotoPath(fileStorageService.storeFile(photo));
             }
 
-            // Обновление образований
             updateEducations(employee, employeeDetails.getEducations());
 
             return employeeRepository.save(employee);
@@ -195,12 +135,6 @@ public class EmployeeService {
         }
     }
 
-    /**
-     * Удаление сотрудника и связанного фото.
-     *
-     * @param id идентификатор сотрудника (не null)
-     * @throws IllegalArgumentException если id null или сотрудник не найден
-     */
     @Transactional
     public void delete(@NotNull Long id) {
         Objects.requireNonNull(id, "ID не может быть null");
@@ -221,12 +155,6 @@ public class EmployeeService {
         employeeRepository.deleteById(id);
     }
 
-    /**
-     * Сохранение списка образований с привязкой к сотруднику.
-     *
-     * @param educations список образований
-     * @param employee   сотрудник
-     */
     private void saveEducations(List<Education> educations, Employee employee) {
         if (educations == null) {
             return;
@@ -237,12 +165,6 @@ public class EmployeeService {
         });
     }
 
-    /**
-     * Обновление списка образований сотрудника.
-     *
-     * @param employee   сотрудник
-     * @param educations новый список образований
-     */
     private void updateEducations(Employee employee, List<Education> educations) {
         educationRepository.deleteByEmployeeId(employee.getId());
         if (educations != null && !educations.isEmpty()) {
@@ -250,15 +172,9 @@ public class EmployeeService {
         }
     }
 
-    /**
-     * Валидация поля сортировки.
-     *
-     * @param sortField поле сортировки
-     * @throws IllegalArgumentException если поле некорректное
-     */
     private void validateSortField(String sortField) {
         if (sortField == null || sortField.isBlank()) {
-            return; // Репозиторий обработает null как findAll
+            return;
         }
         List<String> validFields = List.of("name", "email", "phonenumber", "school", "createdat");
         if (!validFields.contains(sortField.toLowerCase())) {

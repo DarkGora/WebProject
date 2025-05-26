@@ -14,22 +14,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
-/**
- * Контроллер для управления сотрудниками через веб-интерфейс.
- */
+
 @Slf4j
 @Controller
 @RequiredArgsConstructor
 public class EmployeeController {
     private final EmployeeService employeeService;
 
-    /**
-     * Отображение списка сотрудников с пагинацией.
-     *
-     * @param page  номер страницы (начиная с 0)
-     * @param model модель для передачи данных в шаблон
-     * @return имя шаблона для списка сотрудников
-     */
+
     @GetMapping("/")
     public String listEmployees(@RequestParam(defaultValue = "0") int page, Model model) {
         int pageSize = 10;
@@ -52,12 +44,7 @@ public class EmployeeController {
         return "employees";
     }
 
-    /**
-     * Отображение формы для создания нового сотрудника.
-     *
-     * @param model модель для передачи данных в шаблон
-     * @return имя шаблона для формы редактирования
-     */
+
     @GetMapping("/employee/new")
     public String newEmployee(Model model) {
         model.addAttribute("employee", new Employee());
@@ -65,14 +52,7 @@ public class EmployeeController {
         return "employee-edit";
     }
 
-    /**
-     * Отображение формы для создания или редактирования сотрудника.
-     *
-     * @param id                 идентификатор сотрудника (опционально)
-     * @param model              модель для передачи данных в шаблон
-     * @param redirectAttributes атрибуты для перенаправления
-     * @return имя шаблона или перенаправление
-     */
+
     @GetMapping({"/employee/add", "/employee/edit/{id}"})
     public String editEmployee(@PathVariable(required = false) Long id,
                                Model model,
@@ -100,14 +80,7 @@ public class EmployeeController {
         }
     }
 
-    /**
-     * Отображение детальной информации о сотруднике.
-     *
-     * @param id        идентификатор сотрудника
-     * @param model     модель для передачи данных в шаблон
-     * @param redirect  атрибуты для перенаправления
-     * @return имя шаблона или перенаправление
-     */
+
     @GetMapping("/employee/{id}")
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         try {
@@ -126,15 +99,7 @@ public class EmployeeController {
         }
     }
 
-    /**
-     * Сохранение или обновление сотрудника.
-     *
-     * @param employee  объект сотрудника
-     * @param result    результат валидации
-     * @param photo     файл фотографии (опционально)
-     * @param redirect  атрибуты для перенаправления
-     * @return перенаправление
-     */
+
     @PostMapping("/employee/save")
     public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee,
                                BindingResult result,
@@ -168,28 +133,22 @@ public class EmployeeController {
         }
     }
 
-    /**
-     * Удаление сотрудника.
-     *
-     * @param id        идентификатор сотрудника
-     * @param redirect  атрибуты для перенаправления
-     * @return перенаправление
-     */
+
     @PostMapping("/employee/delete/{id}")
     public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
             log.info("Удаление сотрудника с ID: {}", id);
             employeeService.delete(id);
             redirect.addFlashAttribute("success", "Сотрудник успешно удалён");
-            return "redirect:";
+            return "redirect:/";
         } catch (IllegalArgumentException e) {
             log.warn("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", e.getMessage());
-            return "redirect:";
+            return "redirect:/";
         } catch (Exception e) {
             log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника");
-            return "redirect:";
+            return "redirect:/";
         }
     }
 }
