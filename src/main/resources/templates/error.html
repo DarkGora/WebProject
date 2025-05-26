@@ -5,16 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ошибка</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: url('/static/images/black-white-portrait-cat-hood-black-backgroundgenerative-ai_391052-20432.avif') no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+        }
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            position: relative;
+            perspective: 1000px;
+        }
+        .error-card {
+            max-width: 600px;
+            width: 100%;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(200, 200, 200, 0.85));
+            animation: floatIn 0.8s ease-out forwards, vibrate 0.2s 0.8s 2;
+            transform-style: preserve-3d;
+        }
+        @keyframes floatIn {
+            0% { opacity: 0; transform: scale(0.7) translateY(50px) rotateX(-30deg); }
+            70% { opacity: 0.9; transform: scale(1.05) translateY(-10px) rotateX(5deg); }
+            100% { opacity: 1; transform: scale(1) translateY(0) rotateX(0); }
+        }
+        @keyframes vibrate {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(3px); }
+        }
+        .error-icon {
+            font-size: 3rem;
+            color: #dc3545;
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: pulse 1.5s infinite ease-in-out, glow 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 5px rgba(220, 53, 69, 0.5); }
+            50% { text-shadow: 0 0 20px rgba(220, 53, 69, 0.8), 0 0 30px rgba(220, 53, 69, 0.6); }
+        }
+        .error-image {
+            max-width: 180px;
+            height: auto;
+            margin: 2rem auto 1.5rem;
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+        }
+        .error-image:hover {
+            transform: scale(1.1) rotate(2deg);
+        }
+        .error-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            animation: textFade 1s ease-in-out;
+        }
+        @keyframes textFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            animation: textFade 1.2s ease-in-out;
+        }
+        .btn-primary, .btn-secondary {
+            transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary {
+            background-color: #0a9396;
+            border-color: #0a9396;
+        }
+        .btn-primary:hover {
+            background-color: #005f73;
+            border-color: #005f73;
+            transform: translateY(-3px);
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #5a6268;
+            transform: translateY(-3px);
+        }
+        .btn-primary::after, .btn-secondary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+        .btn-primary:hover::after, .btn-secondary:hover::after {
+            width: 200px;
+            height: 200px;
+        }
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFloat 5s linear infinite;
+        }
+        @keyframes particleFloat {
+            0% { transform: translateY(0); opacity: 0.7; }
+            100% { transform: translateY(-100vh); opacity: 0; }
+        }
+        @media (max-width: 576px) {
+            .error-card {
+                margin: 1rem;
+                padding: 2rem;
+            }
+            .error-title {
+                font-size: 1.6rem;
+            }
+            .error-image {
+                max-width: 140px;
+            }
+            .error-icon {
+                font-size: 2.5rem;
+                top: -30px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container py-5">
-    <div class="alert alert-danger">
-        <h1>Произошла ошибка</h1>
-        <p th:text="${error != null} ? ${error} : 'Неизвестная ошибка на сервере'">Неизвестная ошибка</p>
-        <p>Код ошибки: <span th:text="${status != null} ? ${status} : '500'">500</span></p>
-        <a th:href="@{/}" class="btn btn-primary">Вернуться на главную</a>
+<div class="error-container">
+    <div class="error-card text-center">
+        <i class="fas fa-exclamation-triangle error-icon"></i>
+        <img src="/static/images/okak.jpg" alt="Изображение ошибки" class="error-image">
+        <h1 class="text-danger error-title">Произошла ошибка</h1>
+        <p th:text="${error != null} ? ${error} : 'Неизвестная ошибка на сервере'" class="mb-3">Неизвестная ошибка</p>
+        <p class="text-muted">Код ошибки: <span th:text="${status != null} ? ${status} : '500'">500</span></p>
+        <div class="d-flex justify-content-center gap-2">
+            <a th:href="@{/}" class="btn btn-primary mt-3">Вернуться на главную</a>
+            <button onclick="window.location.reload()" class="btn btn-secondary mt-3">Попробовать снова</button>
+        </div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Параллакс-эффект для фона
+    document.addEventListener('mousemove', (e) => {
+        const x = (window.innerWidth - e.pageX) / 50;
+        const y = (window.innerHeight - e.pageY) / 50;
+        document.body.style.backgroundPosition = `${x}px ${y}px`;
+    });
+
+    // Эффект частиц
+    function createParticle() {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        particle.style.width = `${Math.random() * 5 + 2}px`;
+        particle.style.height = particle.style.width;
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}vh`;
+        particle.style.animationDuration = `${Math.random() * 3 + 2}s`;
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 5000);
+    }
+    setInterval(createParticle, 200);
+</script>
 </body>
 </html>
