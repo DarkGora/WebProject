@@ -24,15 +24,11 @@
             <div class="card h-100 shadow-sm">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
-                        <div th:if="${employee.photoPath != null}" class="me-3">
-                            <img th:src="@{${employee.photoPath} ?: '/images/eab2e77f92de15a95ebf828c08fe5290.jpg'}"
+                        <div class="me-3">
+                            <img th:src="${employee.photoPath != null} ? ${employee.photoPath} : '/images/default.jpg'"
                                  class="rounded-circle"
                                  style="width: 50px; height: 50px;"
-                                 th:alt="'Фото ' + ${employee.name}"
-                                 th:onerror="'this.src=/images/placeholder.jpg'">
-                        </div>
-                        <div th:unless="${employee.photoPath != null}" class="me-3">
-                            <i class="bi bi-person-circle fs-3"></i>
+                                 th:alt="'Фото ' + ${employee.name}"/>
                         </div>
                         <h5 class="card-title mb-0" th:text="${employee.name}">Имя сотрудника</h5>
                     </div>

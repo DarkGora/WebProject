@@ -10,10 +10,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"skills", "educations"})
+@EqualsAndHashCode(of = {"id", "email"})
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -31,7 +34,7 @@ public class Employee {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Pattern(regexp = "\\+?[0-9]{10,15}", message = "Неверный формат телефона")
+    @Pattern(regexp = "\\+[0-9]{10,15}", message = "Телефон должен начинаться с '+' и содержать от 10 до 15 цифр")
     @Column(name = "phone_number")
     private String phoneNumber;
 
@@ -66,6 +69,11 @@ public class Employee {
 
     @Valid
     @Builder.Default
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Education> educations = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

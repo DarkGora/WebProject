@@ -10,9 +10,7 @@ import org.example.repository.EmployeeRepository;
 import org.example.repository.EducationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +23,6 @@ import java.util.Optional;
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EducationRepository educationRepository;
-    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public List<Employee> findAll(int offset, int limit) {
@@ -77,34 +74,29 @@ public class EmployeeService {
     }
 
     @Transactional
-    public Employee save(@NotNull @Valid Employee employee, MultipartFile photo) {
+    public Employee save(@NotNull @Valid Employee employee, String photoPath) {
         Objects.requireNonNull(employee, "Сотрудник не может быть null");
         log.info("Сохранение сотрудника: {}", employee.getName());
 
-        try {
-            if (photo != null && !photo.isEmpty()) {
-                employee.setPhotoPath(fileStorageService.storeFile(photo));
-            }
-
-            if (employee.getCreatedAt() == null) {
-                employee.setCreatedAt(LocalDateTime.now());
-            }
-
-            Employee savedEmployee = employeeRepository.save(employee);
-
-            if (employee.getEducations() != null && !employee.getEducations().isEmpty()) {
-                saveEducations(employee.getEducations(), savedEmployee);
-            }
-
-            return savedEmployee;
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении файла для сотрудника: {}", employee.getName(), e);
-            throw new RuntimeException("Не удалось сохранить фотографию сотрудника", e);
+        if (photoPath != null && !photoPath.isBlank()) {
+            employee.setPhotoPath(photoPath);
         }
+
+        if (employee.getCreatedAt() == null) {
+            employee.setCreatedAt(LocalDateTime.now());
+        }
+
+        Employee savedEmployee = employeeRepository.save(employee);
+
+        if (employee.getEducations() != null && !employee.getEducations().isEmpty()) {
+            saveEducations(employee.getEducations(), savedEmployee);
+        }
+
+        return savedEmployee;
     }
 
     @Transactional
-    public Employee update(@NotNull Long id, @NotNull @Valid Employee employeeDetails, MultipartFile photo) {
+    public Employee update(@NotNull Long id, @NotNull @Valid Employee employeeDetails, String photoPath) {
         Objects.requireNonNull(id, "ID не может быть null");
         Objects.requireNonNull(employeeDetails, "Данные сотрудника не могут быть null");
         log.info("Обновление сотрудника с ID: {}", id);
@@ -112,27 +104,19 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
 
-        try {
-            employee.setName(employeeDetails.getName());
-            employee.setEmail(employeeDetails.getEmail());
-            employee.setPhoneNumber(employeeDetails.getPhoneNumber());
-            employee.setSchool(employeeDetails.getSchool());
-            employee.setSkills(employeeDetails.getSkills());
+        employee.setName(employeeDetails.getName());
+        employee.setEmail(employeeDetails.getEmail());
+        employee.setPhoneNumber(employeeDetails.getPhoneNumber());
+        employee.setSchool(employeeDetails.getSchool());
+        employee.setSkills(employeeDetails.getSkills());
 
-            if (photo != null && !photo.isEmpty()) {
-                if (employee.getPhotoPath() != null) {
-                    fileStorageService.deleteFile(employee.getPhotoPath());
-                }
-                employee.setPhotoPath(fileStorageService.storeFile(photo));
-            }
-
-            updateEducations(employee, employeeDetails.getEducations());
-
-            return employeeRepository.save(employee);
-        } catch (IOException e) {
-            log.error("Ошибка при обновлении файла для сотрудника с ID: {}", id, e);
-            throw new RuntimeException("Не удалось обновить фотографию сотрудника", e);
+        if (photoPath != null && !photoPath.isBlank()) {
+            employee.setPhotoPath(photoPath);
         }
+
+        updateEducations(employee, employeeDetails.getEducations());
+
+        return employeeRepository.save(employee);
     }
 
     @Transactional
@@ -142,14 +126,6 @@ public class EmployeeService {
 
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-
-        if (employee.getPhotoPath() != null) {
-            try {
-                fileStorageService.deleteFile(employee.getPhotoPath());
-            } catch (IOException e) {
-                log.warn("Не удалось удалить файл: {}", employee.getPhotoPath(), e);
-            }
-        }
 
         educationRepository.deleteByEmployeeId(id);
         employeeRepository.deleteById(id);

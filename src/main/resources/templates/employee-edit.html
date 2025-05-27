@@ -107,13 +107,12 @@
                             <div class="row align-items-center">
                                 <div class="col-md-4 mb-3">
                                     <div class="photo-container" id="photoPreview">
-                                        <div th:if="${employee?.photoPath != null}">
-                                            <img th:src="@{${employee.photoPath} ?: '/images/placeholder.jpg'}"
+                                        <div th:if="${employee.photoPath != null}">
+                                            <img th:src="${employee.photoPath}"
                                                  alt="Фото сотрудника"
-                                                 class="img-fluid rounded-circle"
-                                                 onerror="this.src='/images/placeholder.jpg'">
+                                                 class="img-fluid rounded-circle"/>
                                         </div>
-                                        <div th:unless="${employee?.photoPath != null}" class="text-center text-muted">
+                                        <div th:unless="${employee.photoPath != null}" class="text-center text-muted">
                                             <i class="bi bi-person-square fs-1"></i>
                                             <p class="mt-2 mb-0">Нет фото</p>
                                         </div>
@@ -126,9 +125,8 @@
                                            id="photo"
                                            name="photo"
                                            accept="image/jpeg,image/png,image/webp"
-                                           aria-describedby="photoHelp">
+                                           aria-describedby="photoHelp"/>
                                     <div class="form-text" id="photoHelp">Максимальный размер: 5MB. Форматы: JPG, PNG, WEBP.</div>
-                                    <input type="hidden" th:field="*{photoPath}">
                                 </div>
                             </div>
                         </div>
