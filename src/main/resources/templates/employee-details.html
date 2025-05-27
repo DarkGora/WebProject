@@ -46,12 +46,10 @@
 
     <div class="profile-header d-flex align-items-start gap-4">
         <div class="profile-photo-container">
-            <div th:if="${employee?.photoPath != null}">
-                <img th:src="@{${employee.photoPath}?: '/static/images/placeholder.jpg'}"
-                     class="profile-photo rounded-circle"
-                     th:alt="'Фото сотрудника ' + ${employee.name}"
-                     th:onerror="'this.src=/images/placeholder.jpg'">
-            </div>
+                <div class="photo">
+                    <img th:src="${employee.photoPath != null} ? ${employee.photoPath} : '/images/default.jpg'"
+                         alt="Фото сотрудника" class="profile-photo"/>
+                </div>
             <div th:unless="${employee?.photoPath != null}" class="photo-placeholder text-center">
                 <i class="bi bi-person-circle fs-1"></i>
                 <span>Нет фото</span>

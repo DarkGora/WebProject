@@ -1,25 +1,30 @@
--- Create tables
+-- Создание таблицы employees
 CREATE TABLE IF NOT EXISTS employees (
                                          id BIGSERIAL PRIMARY KEY,
                                          name VARCHAR(255) NOT NULL,
                                          phone_number VARCHAR(255),
                                          email VARCHAR(255) NOT NULL UNIQUE,
                                          telegram VARCHAR(255),
-                                         resume TEXT,
-                                         school TEXT,
-                                         about TEXT,
+                                         resume VARCHAR(2000),
+                                         school VARCHAR(1000),
+                                         about VARCHAR(500),
                                          photo_path VARCHAR(255),
                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Индекс для email
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees (email);
+-- Индекс для name (опционально, для ускорения поиска)
+CREATE INDEX IF NOT EXISTS idx_employees_name ON employees (name);
 
+-- Создание таблицы employee_skills
 CREATE TABLE IF NOT EXISTS employee_skills (
                                                employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
                                                skill VARCHAR(255) NOT NULL,
                                                PRIMARY KEY (employee_id, skill)
 );
 
+-- Создание таблицы educations
 CREATE TABLE IF NOT EXISTS educations (
                                           id BIGSERIAL PRIMARY KEY,
                                           year_start INTEGER NOT NULL CHECK (year_start >= 1900),
@@ -30,16 +35,17 @@ CREATE TABLE IF NOT EXISTS educations (
                                           CHECK (year_end >= year_start)
 );
 
+-- Индекс для employee_id
 CREATE INDEX IF NOT EXISTS idx_educations_employee_id ON educations (employee_id);
 
--- Insert initial data
+-- Вставка начальных данных
 INSERT INTO employees (name, phone_number, email, telegram, resume, school, about, photo_path)
 VALUES
     ('Евушко Андрей', '+375336980732', 'anonim@mail.ru', '@ansgoo',
      'Я разработчик. Родом из Бреста в Беларуси. В поисках работы на языке программирования Java. Предпочитаю работать онлайн.',
      '1. СШ №9. 2. УО Малоритский ГПЛ СП. 3. н/в IT-Шаг.',
      'Разработчик Java, увлечен созданием масштабируемых приложений.',
-     '/images/2821755862.jpg'),
+     '/images/eab2e77f92de15a95ebf828c08fe5290.jpg'),
     ('Вася Пупкин', '+375298211966', 'test@mail.ru', '@test',
      'Тестовое резюме.',
      'Тестовая школа',
