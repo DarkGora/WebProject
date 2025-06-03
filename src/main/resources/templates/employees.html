@@ -5,17 +5,137 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Список сотрудников">
     <title>Список сотрудников</title>
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/styles/profile.css}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6b7280, #1f2937);
+            color: #ffffff;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .card {
+            background: linear-gradient(145deg, #bfa8a8, #529f52);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+        .card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+            transform: scale(1.1);
+        }
+        .btn-outline-primary, .btn-outline-secondary {
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .btn-outline-primary:hover, .btn-outline-secondary:hover {
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .alert {
+            border-radius: 10px;
+            animation: bounceIn 0.6s ease;
+        }
+        .pagination .page-link {
+            background: rgb(104, 99, 99);
+            color: #fb0000;
+            border: none;
+            transition: background 0.3s ease;
+        }
+        .pagination .page-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .pagination .active .page-link {
+            background: #6b7280;
+        }
+        .rounded-circle {
+            object-fit: cover;
+            border: 2px solid #3b82f6;
+        }
+        .firstbody {
+            /* Фон и градиент */
+            background: linear-gradient(135deg, #6b7280, #1f2937);
+            backdrop-filter: blur(8px);
+            /* Тень */
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
+            /* Позиционирование и центрирование */
+            position: sticky;
+            top: 0;
+            margin: 24px auto 0 auto; /* Центрирование по горизонтали */
+            width: 90%; /* Более адаптивная ширина */
+            max-width: 1200px; /* Максимальная ширина */
+            /* Отступы */
+            padding: 16px 0;
+            /* Выравнивание текста */
+            text-align: center; /* Центрирование текста */
+            color: rgb(255, 255, 255);
+            /* Шрифт */
+            font-family: "Segoe UI", sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 1.6;
+            /* Разное */
+            box-sizing: border-box;
+            z-index: 1000;
+            border-radius: 8px; /* Добавлены скругленные углы */
+            /* Анимация при наведении */
+            transition: all 0.3s ease;
+        }
+        .firstbody:hover {
+            box-shadow: rgba(0, 0, 0, 0.2) 0px 6px 12px 0px;
+            transform: translateY(-2px);
+        }
+        /* Для лучшей читаемости на мобильных устройствах */
+        @media (max-width: 768px) {
+            .firstbody {
+                width: 95%;
+                padding: 12px 0;
+                font-size: 14px;
+            }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @media (max-width: 576px) {
+            .card {
+                margin-bottom: 1.5rem;
+            }
+            .btn {
+                font-size: 0.85rem;
+                padding: 0.4rem;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="container py-5">
-    <h1 class="mb-4">Список сотрудников</h1>
+    <h1 class="mb-4 animate__animated animate__bounceIn">Список сотрудников</h1>
     <a th:href="@{/employee/add}" class="btn btn-primary mb-3" th:aria-label="'Добавить сотрудника'" lang="ru">
         <i class="bi bi-plus-circle"></i> <span>Добавить сотрудника</span>
     </a>
 
-    <div th:if="${error != null}" class="alert alert-danger">
+    <div th:if="${error != null}" class="alert alert-danger animate__animated animate__bounceIn">
         <span th:text="${error}"></span>
     </div>
 
@@ -30,44 +150,42 @@
                                  style="width: 50px; height: 50px;"
                                  th:alt="'Фото ' + ${employee.name}"/>
                         </div>
-                        <h5 class="card-title mb-0" th:text="${employee.name}">Имя сотрудника</h5>
+                        <h5 class="card-title mb-0" th:text="${employee.name} ?: 'Имя не указано'">Имя сотрудника</h5>
                     </div>
                     <p class="card-text">
                         <strong>Email:</strong> <span th:text="${employee.email != null} ? ${employee.email} : 'Не указан'"></span><br>
                         <strong>Навыки:</strong>
                         <span th:if="${employee.skills != null and !employee.skills.isEmpty()}">
-        <span th:each="skill, iterStat : ${employee.skills}"
-              th:text="${skill} + (${iterStat.last} ? '' : ', ')"></span>
-    </span>
+                            <span th:each="skill, iterStat : ${employee.skills}"
+                                  th:text="${skill} + (${iterStat.last} ? '' : ', ')"></span>
+                        </span>
                         <span th:unless="${employee.skills != null and !employee.skills.isEmpty()}">Не указаны</span>
                     </p>
                     <div class="mt-auto d-flex gap-2">
                         <a th:href="@{'/employee/' + ${employee.id}}"
                            class="btn btn-outline-primary"
-                           th:aria-label="'Просмотреть профиль ' + ${employee.name}"
+                           th:aria-label="'Просмотреть профиль ' + ${employee.name} ?: 'Сотрудник'"
                            lang="ru">
                             <i class="bi bi-eye"></i> <span>Просмотр</span>
                         </a>
                         <a th:href="@{'/employee/edit/' + ${employee.id}}"
                            class="btn btn-outline-secondary"
-                           th:aria-label="'Редактировать ' + ${employee.name}"
+                           th:aria-label="'Редактировать ' + ${employee.name} ?: 'Сотрудник'"
                            lang="ru">
                             <i class="bi bi-pencil"></i> <span>Редактировать</span>
                         </a>
-
-
                     </div>
                 </div>
             </div>
         </div>
         <div th:if="${employees == null or employees.isEmpty()}" class="col-12">
-            <div class="alert alert-info text-center">
-                Сотрудники не найдены. Добавьте нового сотрудника!
+            <div class="alert alert-info text-center animate__animated animate__bounceIn">
+                Сотрудники не найд bowls. Добавьте нового сотрудника!
             </div>
         </div>
     </div>
 
-    <nav th:if="${totalPages > 1}" class="mt-4" aria-label="Пагинация сотрудников">
+    <nav th:if="${totalPages > 1}" class="firstbody" aria-label="Пагинация сотрудников">
         <ul class="pagination justify-content-center">
             <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
                 <a class="page-link"
@@ -98,7 +216,7 @@
     </nav>
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></script>
 </body>
 </html>

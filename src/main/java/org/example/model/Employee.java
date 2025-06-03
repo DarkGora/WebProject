@@ -24,6 +24,15 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Override
+    public String toString() {
+        return "Employee{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", photoPath='" + photoPath + '\'' +
+                '}';
+    }
+
     @NotBlank(message = "Имя не может быть пустым")
     @Size(max = 255, message = "Имя не должно превышать 255 символов")
     @Column(name = "name", nullable = false)

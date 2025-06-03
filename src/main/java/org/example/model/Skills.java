@@ -49,11 +49,7 @@ public enum Skills {
         return category;
     }
 
-    /**
-     * Возвращает список навыков по категории, игнорируя регистр.
-     * @param category Категория навыков
-     * @return Список навыков или пустой список, если категория null или пустая
-     */
+
     public static List<Skills> getByCategory(String category) {
         if (category == null || category.isBlank()) {
             return List.of();
@@ -63,9 +59,7 @@ public enum Skills {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Возвращает список всех уникальных категорий.
-     */
+
     public static List<String> getAllCategories() {
         return Arrays.stream(values())
                 .map(Skills::getCategory)

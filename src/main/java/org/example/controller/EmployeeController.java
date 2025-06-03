@@ -44,8 +44,8 @@ public class EmployeeController {
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
         } catch (IllegalArgumentException e) {
-            log.error("Некорректные параметры пагинации для страницы {}: {}", page, e.getMessage());
-            model.addAttribute("error", "Некорректные параметры пагинации");
+            log.error("Некорректные параметры для страницы {}: {}", page, e.getMessage());
+            model.addAttribute("error", "Некорректные параметры");
         } catch (Exception e) {
             log.error("Ошибка при загрузке сотрудников для страницы {}: {}", page, e.getMessage());
             model.addAttribute("error", "Ошибка при загрузке списка сотрудников");
