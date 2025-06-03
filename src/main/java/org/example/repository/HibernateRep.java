@@ -491,14 +491,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по части имени с пагинацией.
-     *
-     * @param namePart часть имени
-     * @param offset   начальная позиция
-     * @param limit    количество записей
-     * @return список сотрудников или пустой список при ошибке
-     */
+
     @Override
     public List<Employee> findByNameContainingPaginated(String namePart, int offset, int limit) {
         if (offset < 0 || limit <= 0) {
@@ -526,12 +519,6 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по навыку.
-     *
-     * @param skill навык
-     * @return список сотрудников или пустой список, если навык null
-     */
     @Override
     public List<Employee> findBySkill(Skills skill) {
         if (skill == null) {
@@ -554,12 +541,6 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по списку навыков.
-     *
-     * @param skills список навыков
-     * @return список сотрудников или пустой список, если список навыков пустой
-     */
     @Override
     public List<Employee> findBySkills(List<Skills> skills) {
         if (skills == null || skills.isEmpty()) {
@@ -582,12 +563,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по категории навыков.
-     *
-     * @param category категория навыков
-     * @return список сотрудников или пустой список, если категория пустая
-     */
+
     @Override
     public List<Employee> findBySkillCategory(String category) {
         if (category == null || category.isBlank()) {
@@ -610,12 +586,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по части email.
-     *
-     * @param emailPart часть email
-     * @return список сотрудников или все сотрудники, если emailPart пустой
-     */
+
     @Override
     public List<Employee> findByEmailContaining(String emailPart) {
         if (emailPart == null || emailPart.isBlank()) {
@@ -638,12 +609,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по части номера телефона.
-     *
-     * @param phonePart часть номера телефона
-     * @return список сотрудников или все сотрудники, если phonePart пустой
-     */
+
     @Override
     public List<Employee> findByPhoneNumberContaining(String phonePart) {
         if (phonePart == null || phonePart.isBlank()) {
@@ -666,13 +632,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по школе и навыку.
-     *
-     * @param school название школы
-     * @param skill  навык
-     * @return список сотрудников или пустой список, если параметры пустые
-     */
+
     @Override
     public List<Employee> findBySchoolAndSkill(String school, Skills skill) {
         if ((school == null || school.isBlank()) && skill == null) {
@@ -707,13 +667,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Поиск сотрудников по имени или email.
-     *
-     * @param name  имя
-     * @param email email
-     * @return список сотрудников или все сотрудники, если параметры пустые
-     */
+
     @Override
     public List<Employee> findByNameOrEmail(String name, String email) {
         if ((name == null || name.isBlank()) && (email == null || email.isBlank())) {
@@ -739,11 +693,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Получение всех уникальных школ.
-     *
-     * @return список уникальных названий школ или пустой список при ошибке
-     */
+
     @Override
     public List<String> findAllDistinctSchools() {
         Session session = getSession();
@@ -761,14 +711,6 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Обновление email сотрудника по ID.
-     *
-     * @param id       идентификатор сотрудника
-     * @param newEmail новый email
-     * @return количество обновленных записей
-     * @throws IllegalArgumentException если параметры null или пустые
-     */
     @Override
     public int updateEmailById(Long id, String newEmail) {
         Objects.requireNonNull(id, "ID сотрудника не может быть null");
@@ -801,13 +743,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
     }
 
-    /**
-     * Удаление сотрудников по школе.
-     *
-     * @param school название школы
-     * @return количество удаленных записей
-     * @throws IllegalArgumentException если школа null или пустая
-     */
+
     @Override
     public int deleteBySchool(String school) {
         Objects.requireNonNull(school, "Школа не может быть null");

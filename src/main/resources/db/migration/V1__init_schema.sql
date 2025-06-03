@@ -1,4 +1,4 @@
--- Создание таблицы employees
+
 CREATE TABLE IF NOT EXISTS employees (
                                          id BIGSERIAL PRIMARY KEY,
                                          name VARCHAR(255) NOT NULL,
@@ -17,14 +17,14 @@ CREATE INDEX IF NOT EXISTS idx_employees_email ON employees (email);
 -- Индекс для name (опционально, для ускорения поиска)
 CREATE INDEX IF NOT EXISTS idx_employees_name ON employees (name);
 
--- Создание таблицы employee_skills
+
 CREATE TABLE IF NOT EXISTS employee_skills (
                                                employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
                                                skill VARCHAR(255) NOT NULL,
                                                PRIMARY KEY (employee_id, skill)
 );
 
--- Создание таблицы educations
+
 CREATE TABLE IF NOT EXISTS educations (
                                           id BIGSERIAL PRIMARY KEY,
                                           year_start INTEGER NOT NULL CHECK (year_start >= 1900),
@@ -35,10 +35,10 @@ CREATE TABLE IF NOT EXISTS educations (
                                           CHECK (year_end >= year_start)
 );
 
--- Индекс для employee_id
+
 CREATE INDEX IF NOT EXISTS idx_educations_employee_id ON educations (employee_id);
 
--- Вставка начальных данных
+
 INSERT INTO employees (name, phone_number, email, telegram, resume, school, about, photo_path)
 VALUES
     ('Евушко Андрей', '+375336980732', 'anonim@mail.ru', '@ansgoo',
