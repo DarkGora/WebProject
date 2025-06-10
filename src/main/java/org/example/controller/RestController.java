@@ -82,7 +82,7 @@ public class RestController {
     }
 
     // Создание нового сотрудника
-    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createEmployee(
             @Valid @ModelAttribute Employee employee,
             @RequestParam(value = "photo", required = false) MultipartFile photo) {
@@ -102,7 +102,7 @@ public class RestController {
     }
 
     // Обновление существующего сотрудника
-    @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateEmployee(
             @PathVariable Long id,
             @Valid @ModelAttribute Employee employee,
@@ -129,7 +129,7 @@ public class RestController {
             log.info("Удаление сотрудника с ID: {}", id);
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-            if (employee.getPhotoPath() != null) {
+            if (employee.getPhotoPath() != null && !employee.getPhotoPath().equals("/images/default.jpg")) {
                 deleteFile(employee.getPhotoPath());
             }
             employeeService.delete(id);
@@ -165,7 +165,7 @@ public class RestController {
             return "/images/" + fileName;
         } catch (IOException e) {
             log.error("Ошибка при сохранении файла {}: {}", fileName, e.getMessage());
-            throw e;
+            throw new IOException("Не удалось сохранить файл", e);
         }
     }
 
@@ -201,6 +201,9 @@ public class RestController {
 
     // Генерация уникального имени файла
     private String generateUniqueFileName(String originalFilename) {
+        if (originalFilename == null) {
+            return UUID.randomUUID().toString();
+        }
         String safeFileName = originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
         return UUID.randomUUID() + "_" + safeFileName;
     }

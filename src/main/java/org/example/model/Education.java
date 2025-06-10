@@ -39,8 +39,4 @@ public class Education {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @AssertTrue(message = "Год окончания должен быть не раньше года начала")
-    private boolean isValidYearRange() {
-        return yearEnd >= yearStart;
-    }
 }
