@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -86,12 +87,18 @@ public class EmployeeService {
             employee.setCreatedAt(LocalDateTime.now());
         }
 
-        Employee savedEmployee = employeeRepository.save(employee);
-
-        if (employee.getEducations() != null && !employee.getEducations().isEmpty()) {
-            saveEducations(employee.getEducations(), savedEmployee);
+        // Инициализация списка educations, если он null
+        if (employee.getEducations() == null) {
+            employee.setEducations(new ArrayList<>());
         }
 
+        // Устанавливаем связь employee для каждой записи Education
+        for (Education education : employee.getEducations()) {
+            education.setEmployee(employee);
+        }
+
+        Employee savedEmployee = employeeRepository.save(employee);
+        log.info("Сотрудник сохранён с ID: {}", savedEmployee.getId());
         return savedEmployee;
     }
 
@@ -109,14 +116,26 @@ public class EmployeeService {
         employee.setPhoneNumber(employeeDetails.getPhoneNumber());
         employee.setSchool(employeeDetails.getSchool());
         employee.setSkills(employeeDetails.getSkills());
+        employee.setAbout(employeeDetails.getAbout());
+        employee.setResume(employeeDetails.getResume());
+        employee.setTelegram(employeeDetails.getTelegram());
 
         if (photoPath != null && !photoPath.isBlank()) {
             employee.setPhotoPath(photoPath);
         }
 
-        updateEducations(employee, employeeDetails.getEducations());
+        // Обновляем educations
+        employee.getEducations().clear(); // Очищаем старые записи
+        if (employeeDetails.getEducations() != null && !employeeDetails.getEducations().isEmpty()) {
+            for (Education education : employeeDetails.getEducations()) {
+                education.setEmployee(employee);
+                employee.getEducations().add(education);
+            }
+        }
 
-        return employeeRepository.save(employee);
+        Employee updatedEmployee = employeeRepository.save(employee);
+        log.info("Сотрудник обновлён с ID: {}", updatedEmployee.getId());
+        return updatedEmployee;
     }
 
     @Transactional
@@ -129,23 +148,6 @@ public class EmployeeService {
 
         educationRepository.deleteByEmployeeId(id);
         employeeRepository.deleteById(id);
-    }
-
-    private void saveEducations(List<Education> educations, Employee employee) {
-        if (educations == null) {
-            return;
-        }
-        educations.forEach(education -> {
-            education.setEmployee(employee);
-            educationRepository.save(education);
-        });
-    }
-
-    private void updateEducations(Employee employee, List<Education> educations) {
-        educationRepository.deleteByEmployeeId(employee.getId());
-        if (educations != null && !educations.isEmpty()) {
-            saveEducations(educations, employee);
-        }
     }
 
     private void validateSortField(String sortField) {
