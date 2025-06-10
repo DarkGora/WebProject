@@ -364,6 +364,10 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- Добавляем отображение общих ошибок для educations -->
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('educations')}">
+                                <span th:each="error : ${#fields.errors('educations')}" th:text="${error}"></span>
+                            </div>
                             <button type="button" class="btn btn-outline-primary mt-2" onclick="addEducation()">Добавить образование</button>
                         </div>
 
@@ -388,36 +392,26 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
-    function confirmAdd() {
-        return new Promise((resolve) => {
-            Swal.fire({
-                title: 'Подтверждение',
-                text: 'Вы уверены, что хотите сохранить изменения?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Да, сохранить',
-                cancelButtonText: 'Отмена'
-            }).then((result) => {
-                resolve(result.isConfirmed);
-            });
-        });
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
         const photoInput = document.getElementById('photo');
         const photoPreview = document.getElementById('photoPreview');
         const employeeForm = document.getElementById('employeeForm');
+        let educationCount = document.querySelectorAll('.education-item').length;
 
+        console.log("Инициализация educationCount: ", educationCount);
+
+        // Функция для сброса предварительного просмотра фото
         function resetPhotoPreview() {
             if (photoPreview) {
                 photoPreview.innerHTML = `
-                    <div class="text-center text-muted">
-                        <i class="bi bi-person-square fs-1"></i>
-                        <p class="mt-2 mb-0">Нет фото</p>
-                    </div>`;
+                <div class="text-center text-muted">
+                    <i class="bi bi-person-square fs-1"></i>
+                    <p class="mt-2 mb-0">Нет фото</p>
+                </div>`;
             }
         }
 
+        // Обработчик для предварительного просмотра фото
         if (photoInput && photoPreview) {
             photoInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
@@ -471,70 +465,155 @@
             });
         }
 
-        let educationCount = document.querySelectorAll('.education-item').length;
-
+        // Функция для добавления нового образования
         window.addEducation = function() {
+            console.log("Кнопка нажата, добавление нового образования, индекс: ", educationCount);
+
+            // Ищем контейнер с образованием
+            const formSection = document.querySelector('div.form-section:has(button.btn-outline-primary)');
+            if (!formSection) {
+                console.error("Ошибка: контейнер .form-section с кнопкой .btn-outline-primary не найден");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    text: 'Не удалось найти контейнер для добавления образования.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            const addButton = formSection.querySelector('button.btn-outline-primary');
+            if (!addButton) {
+                console.error("Ошибка: кнопка .btn-outline-primary не найдена");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    text: 'Не удалось найти кнопку добавления.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
             const container = document.createElement('div');
             container.className = 'mb-3 education-item';
             container.innerHTML = `
-                <div class="row g-3">
-                    <input type="hidden" name="educations[${educationCount}].id">
-                    <div class="col-md-6">
-                        <label for="university_${educationCount}" class="form-label required-field">Университет</label>
-                        <input type="text" class="form-control" id="university_${educationCount}"
-                               name="educations[${educationCount}].university" required
-                               aria-describedby="universityError_${educationCount}">
-                        <div class="invalid-feedback" id="universityError_${educationCount}"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="degree_${educationCount}" class="form-label required-field">Степень</label>
-                        <input type="text" class="form-control" id="degree_${educationCount}"
-                               name="educations[${educationCount}].degree" required
-                               aria-describedby="degreeError_${educationCount}">
-                        <div class="invalid-feedback" id="degreeError_${educationCount}"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="yearStart_${educationCount}" class="form-label required-field">Год начала</label>
-                        <input type="number" class="form-control" id="yearStart_${educationCount}"
-                               name="educations[${educationCount}].yearStart" min="1900" max="2100" required
-                               aria-describedby="yearStartError_${educationCount}">
-                        <div class="invalid-feedback" id="yearStartError_${educationCount}"></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="yearEnd_${educationCount}" class="form-label required-field">Год окончания</label>
-                        <input type="number" class="form-control" id="yearEnd_${educationCount}"
-                               name="educations[${educationCount}].yearEnd" min="1900" max="2100" required
-                               aria-describedby="yearEndError_${educationCount}">
-                        <div class="invalid-feedback" id="yearEndError_${educationCount}"></div>
-                    </div>
-                    <div class="col-12">
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.education-item').remove()">Удалить</button>
-                    </div>
+            <div class="row g-3">
+                <input type="hidden" name="educations[${educationCount}].id">
+                <div class="col-md-6">
+                    <label for="university_${educationCount}" class="form-label required-field">Университет</label>
+                    <input type="text" class="form-control" id="university_${educationCount}"
+                           name="educations[${educationCount}].university" required
+                           aria-describedby="universityError_${educationCount}">
+                    <div class="invalid-feedback" id="universityError_${educationCount}"></div>
                 </div>
-            `;
-            const formSection = document.querySelector('.form-section:last-of-type');
-            if (formSection) {
-                const addButton = formSection.querySelector('.btn-outline-primary');
-                if (addButton) {
-                    formSection.insertBefore(container, addButton);
-                    educationCount++;
-                }
+                <div class="col-md-6">
+                    <label for="degree_${educationCount}" class="form-label required-field">Степень</label>
+                    <input type="text" class="form-control" id="degree_${educationCount}"
+                           name="educations[${educationCount}].degree" required
+                           aria-describedby="degreeError_${educationCount}">
+                    <div class="invalid-feedback" id="degreeError_${educationCount}"></div>
+                </div>
+                <div class="col-md-6">
+                    <label for="yearStart_${educationCount}" class="form-label required-field">Год начала</label>
+                    <input type="number" class="form-control" id="yearStart_${educationCount}"
+                           name="educations[${educationCount}].yearStart" min="1900" max="2100" required
+                           aria-describedby="yearStartError_${educationCount}">
+                    <div class="invalid-feedback" id="yearStartError_${educationCount}"></div>
+                </div>
+                <div class="col-md-6">
+                    <label for="yearEnd_${educationCount}" class="form-label required-field">Год окончания</label>
+                    <input type="number" class="form-control" id="yearEnd_${educationCount}"
+                           name="educations[${educationCount}].yearEnd" min="1900" max="2100" required
+                           aria-describedby="yearEndError_${educationCount}">
+                    <div class="invalid-feedback" id="yearEndError_${educationCount}"></div>
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.education-item').remove()">Удалить</button>
+                </div>
+            </div>
+        `;
+
+            try {
+                formSection.insertBefore(container, addButton);
+                educationCount++;
+                console.log("Новое образование добавлено, новый индекс: ", educationCount);
+            } catch (e) {
+                console.error("Ошибка при добавлении нового образования: ", e);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    text: 'Не удалось добавить образование.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             }
         };
 
+        // Функция для удаления образования
         window.removeEducation = function(index) {
+            console.log("Удаление образования с индексом: ", index);
             const item = document.querySelector(`.education-item:nth-child(${index + 1})`);
-            if (item) item.remove();
+            if (item) {
+                item.remove();
+                console.log("Образование удалено");
+            } else {
+                console.error("Ошибка: элемент .education-item с индексом ", index, " не найден");
+            }
         };
 
+        // Обработчик отправки формы
         if (employeeForm) {
-            employeeForm.addEventListener('submit', function(e) {
-                if (!this.checkValidity()) {
+            employeeForm.addEventListener('submit', async function(e) {
+                let valid = true;
+                document.querySelectorAll('.education-item').forEach((item, index) => {
+                    const yearStart = item.querySelector(`#yearStart_${index}`).value;
+                    const yearEnd = item.querySelector(`#yearEnd_${index}`).value;
+                    if (yearEnd && yearStart && parseInt(yearEnd) < parseInt(yearStart)) {
+                        valid = false;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Ошибка',
+                            text: `Год окончания (${yearEnd}) не может быть раньше года начала (${yearStart}) в записи ${index + 1}`,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+
+                if (!valid || !this.checkValidity()) {
                     e.preventDefault();
                     e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
                 }
-                this.classList.add('was-validated');
+
+                // Подтверждение перед отправкой
+                e.preventDefault();
+                const confirmed = await confirmAdd();
+                if (confirmed) {
+                    this.submit();
+                }
             }, false);
+        } else {
+            console.error("Ошибка: форма #employeeForm не найдена");
+        }
+
+        // Функция подтверждения отправки формы
+        function confirmAdd() {
+            return new Promise((resolve) => {
+                Swal.fire({
+                    title: 'Подтверждение',
+                    text: 'Вы уверены, что хотите сохранить изменения?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Да, сохранить',
+                    cancelButtonText: 'Отмена'
+                }).then((result) => {
+                    resolve(result.isConfirmed);
+                });
+            });
         }
     });
 </script>
