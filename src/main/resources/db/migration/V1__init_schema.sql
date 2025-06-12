@@ -34,8 +34,15 @@ CREATE TABLE IF NOT EXISTS educations (
                                           employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
                                           CHECK (year_end >= year_start)
 );
-
-
+CREATE TABLE reviews (
+                         id BIGSERIAL PRIMARY KEY,
+                         employee_id BIGINT NOT NULL,
+                         rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                         comment TEXT,
+                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                         FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_reviews_employee_id ON reviews (employee_id);
 CREATE INDEX IF NOT EXISTS idx_educations_employee_id ON educations (employee_id);
 
 

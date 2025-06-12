@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Отзывы о сотруднике</title>
+</head>
+<body>
+<h2>Отзывы о сотруднике: <span th:text="${employee.name}"></span></h2>
+<p>Средний рейтинг: <span th:text="${averageRating}"></span></p>
+
+<div th:if="${reviews.isEmpty()}">
+    <p>Отзывов пока нет.</p>
+</div>
+<div th:unless="${reviews.isEmpty()}">
+    <ul>
+        <li th:each="review : ${reviews}">
+            <p>Рейтинг: <span th:text="${review.rating}"></span></p>
+            <p>Комментарий: <span th:text="${review.comment} ?: 'Без комментария'"></span></p>
+            <p>Дата: <span th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy HH:mm')}"></span></p>
+        </li>
+    </ul>
+</div>
+
+<a th:href="@{/employee/{id}(id=${employee.id})}">Вернуться к профилю</a>
+</body>
+</html>

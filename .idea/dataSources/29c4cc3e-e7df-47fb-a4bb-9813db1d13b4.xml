@@ -3,17 +3,9 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.53">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-4||-9223372036854775808|c|G
-4||10|c|G
-4||10|C|G
-4||10|T|G</Grants>
-      <IntrospectionStateNumber>1508</IntrospectionStateNumber>
+      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
       <ServerVersion>15.12</ServerVersion>
-      <StartupTime>1749571093</StartupTime>
+      <StartupTime>1749723585</StartupTime>
       <TimeZones>true ACDT
 true ACSST
 false ACST
@@ -1406,7 +1398,7 @@ true posixrules
 13209||10|C|G
 13209||-9223372036854775808|U|G
 13209||10|U|G</Grants>
-      <IntrospectionStateNumber>1508</IntrospectionStateNumber>
+      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>user</OwnerName>
     </database>
@@ -4823,8 +4815,8 @@ true posixrules
     </schema>
     <schema id="262" parent="2" name="public">
       <Current>1</Current>
-      <IntrospectionStateNumber>1508</IntrospectionStateNumber>
-      <LastIntrospectionLocalTimestamp>2025-06-10.16:20:49</LastIntrospectionLocalTimestamp>
+      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
+      <LastIntrospectionLocalTimestamp>2025-06-12.11:34:23</LastIntrospectionLocalTimestamp>
       <ObjectId>16705</ObjectId>
       <StateNumber>928</StateNumber>
       <OwnerName>user</OwnerName>
@@ -4845,44 +4837,58 @@ true posixrules
       <StoredType>bigint|0s</StoredType>
       <OwnerName>user</OwnerName>
     </sequence>
-    <table id="265" parent="262" name="educations">
+    <sequence id="265" parent="262" name="reviews_id_seq">
+      <ObjectId>49817</ObjectId>
+      <SequenceIdentity>1</SequenceIdentity>
+      <StartValue>1</StartValue>
+      <StateNumber>1511</StateNumber>
+      <StoredType>bigint|0s</StoredType>
+      <OwnerName>user</OwnerName>
+    </sequence>
+    <table id="266" parent="262" name="educations">
       <ObjectId>49785</ObjectId>
       <StateNumber>1439</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>user</OwnerName>
     </table>
-    <table id="266" parent="262" name="employee_skills">
+    <table id="267" parent="262" name="employee_skills">
       <ObjectId>49774</ObjectId>
       <StateNumber>1438</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>user</OwnerName>
     </table>
-    <table id="267" parent="262" name="employees">
+    <table id="268" parent="262" name="employees">
       <ObjectId>49761</ObjectId>
       <StateNumber>1438</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>user</OwnerName>
     </table>
-    <check id="268" parent="265" name="educations_year_end_check">
+    <table id="269" parent="262" name="reviews">
+      <ObjectId>49818</ObjectId>
+      <StateNumber>1511</StateNumber>
+      <AccessMethodId>2</AccessMethodId>
+      <OwnerName>user</OwnerName>
+    </table>
+    <check id="270" parent="266" name="educations_year_end_check">
       <ColNames>year_end</ColNames>
       <ObjectId>49790</ObjectId>
       <Predicate>year_end &gt;= 1900</Predicate>
       <StateNumber>1439</StateNumber>
     </check>
-    <check id="269" parent="265" name="educations_check">
+    <check id="271" parent="266" name="educations_check">
       <ColNames>year_end
 year_start</ColNames>
       <ObjectId>49791</ObjectId>
       <Predicate>year_end &gt;= year_start</Predicate>
       <StateNumber>1439</StateNumber>
     </check>
-    <check id="270" parent="265" name="educations_year_start_check">
+    <check id="272" parent="266" name="educations_year_start_check">
       <ColNames>year_start</ColNames>
       <ObjectId>49789</ObjectId>
       <Predicate>year_start &gt;= 1900</Predicate>
       <StateNumber>1439</StateNumber>
     </check>
-    <column id="271" parent="265" name="id">
+    <column id="273" parent="266" name="id">
       <DefaultExpression>nextval(&apos;educations_id_seq&apos;::regclass)</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -4891,42 +4897,42 @@ year_start</ColNames>
       <SequenceId>49784</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="272" parent="265" name="year_start">
+    <column id="274" parent="266" name="year_start">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1439</StateNumber>
       <StoredType>integer|0s</StoredType>
       <TypeId>23</TypeId>
     </column>
-    <column id="273" parent="265" name="year_end">
+    <column id="275" parent="266" name="year_end">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>1439</StateNumber>
       <StoredType>integer|0s</StoredType>
       <TypeId>23</TypeId>
     </column>
-    <column id="274" parent="265" name="university">
+    <column id="276" parent="266" name="university">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>1439</StateNumber>
       <StoredType>varchar(100)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="275" parent="265" name="degree">
+    <column id="277" parent="266" name="degree">
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>1439</StateNumber>
       <StoredType>varchar(100)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="276" parent="265" name="employee_id">
+    <column id="278" parent="266" name="employee_id">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>1439</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <foreign-key id="277" parent="265" name="educations_employee_id_fkey">
+    <foreign-key id="279" parent="266" name="educations_employee_id_fkey">
       <ColNames>employee_id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49794</ObjectId>
@@ -4935,7 +4941,7 @@ year_start</ColNames>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>49761</RefTableId>
     </foreign-key>
-    <index id="278" parent="265" name="educations_pkey">
+    <index id="280" parent="266" name="educations_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49792</ObjectId>
@@ -4944,34 +4950,34 @@ year_start</ColNames>
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <index id="279" parent="265" name="idx_educations_employee_id">
+    <index id="281" parent="266" name="idx_educations_employee_id">
       <ColNames>employee_id</ColNames>
       <ObjectId>49799</ObjectId>
       <StateNumber>1440</StateNumber>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="280" parent="265" name="educations_pkey">
+    <key id="282" parent="266" name="educations_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49793</ObjectId>
       <Primary>1</Primary>
       <StateNumber>1439</StateNumber>
       <UnderlyingIndexId>49792</UnderlyingIndexId>
     </key>
-    <column id="281" parent="266" name="employee_id">
+    <column id="283" parent="267" name="employee_id">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>1438</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <column id="282" parent="266" name="skill">
+    <column id="284" parent="267" name="skill">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1438</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <foreign-key id="283" parent="266" name="employee_skills_employee_id_fkey">
+    <foreign-key id="285" parent="267" name="employee_skills_employee_id_fkey">
       <ColNames>employee_id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49779</ObjectId>
@@ -4980,7 +4986,7 @@ year_start</ColNames>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>49761</RefTableId>
     </foreign-key>
-    <index id="284" parent="266" name="employee_skills_pkey">
+    <index id="286" parent="267" name="employee_skills_pkey">
       <ColNames>employee_id
 skill</ColNames>
       <NameSurrogate>1</NameSurrogate>
@@ -4996,14 +5002,14 @@ pg_catalog</CollationParentNames>
       <CollationNames>
 default</CollationNames>
     </index>
-    <key id="285" parent="266" name="employee_skills_pkey">
+    <key id="287" parent="267" name="employee_skills_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49778</ObjectId>
       <Primary>1</Primary>
       <StateNumber>1438</StateNumber>
       <UnderlyingIndexId>49777</UnderlyingIndexId>
     </key>
-    <column id="286" parent="267" name="id">
+    <column id="288" parent="268" name="id">
       <DefaultExpression>nextval(&apos;employees_id_seq&apos;::regclass)</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5012,64 +5018,64 @@ default</CollationNames>
       <SequenceId>49760</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="287" parent="267" name="name">
+    <column id="289" parent="268" name="name">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="288" parent="267" name="phone_number">
+    <column id="290" parent="268" name="phone_number">
       <Position>3</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="289" parent="267" name="email">
+    <column id="291" parent="268" name="email">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="290" parent="267" name="telegram">
+    <column id="292" parent="268" name="telegram">
       <Position>5</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="291" parent="267" name="resume">
+    <column id="293" parent="268" name="resume">
       <Position>6</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(2000)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="292" parent="267" name="school">
+    <column id="294" parent="268" name="school">
       <Position>7</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(1000)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="293" parent="267" name="about">
+    <column id="295" parent="268" name="about">
       <Position>8</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(500)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="294" parent="267" name="photo_path">
+    <column id="296" parent="268" name="photo_path">
       <Position>9</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>varchar(255)|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="295" parent="267" name="created_at">
+    <column id="297" parent="268" name="created_at">
       <DefaultExpression>CURRENT_TIMESTAMP</DefaultExpression>
       <Position>10</Position>
       <StateNumber>1435</StateNumber>
       <StoredType>timestamp|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <index id="296" parent="267" name="employees_pkey">
+    <index id="298" parent="268" name="employees_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49768</ObjectId>
@@ -5078,7 +5084,7 @@ default</CollationNames>
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <index id="297" parent="267" name="employees_email_key">
+    <index id="299" parent="268" name="employees_email_key">
       <ColNames>email</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49770</ObjectId>
@@ -5089,7 +5095,7 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <index id="298" parent="267" name="idx_employees_name">
+    <index id="300" parent="268" name="idx_employees_name">
       <ColNames>name</ColNames>
       <ObjectId>49773</ObjectId>
       <StateNumber>1437</StateNumber>
@@ -5098,7 +5104,7 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <index id="299" parent="267" name="idx_employees_email">
+    <index id="301" parent="268" name="idx_employees_email">
       <ColNames>email</ColNames>
       <ObjectId>49772</ObjectId>
       <StateNumber>1436</StateNumber>
@@ -5107,18 +5113,91 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="300" parent="267" name="employees_pkey">
+    <key id="302" parent="268" name="employees_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49769</ObjectId>
       <Primary>1</Primary>
       <StateNumber>1435</StateNumber>
       <UnderlyingIndexId>49768</UnderlyingIndexId>
     </key>
-    <key id="301" parent="267" name="employees_email_key">
+    <key id="303" parent="268" name="employees_email_key">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49771</ObjectId>
       <StateNumber>1435</StateNumber>
       <UnderlyingIndexId>49770</UnderlyingIndexId>
+    </key>
+    <check id="304" parent="269" name="reviews_rating_check">
+      <ColNames>rating</ColNames>
+      <ObjectId>49823</ObjectId>
+      <Predicate>(rating &gt;= 1) AND (rating &lt;= 5)</Predicate>
+      <StateNumber>1511</StateNumber>
+    </check>
+    <column id="305" parent="269" name="id">
+      <DefaultExpression>nextval(&apos;reviews_id_seq&apos;::regclass)</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StateNumber>1511</StateNumber>
+      <StoredType>bigint|0s</StoredType>
+      <SequenceId>49817</SequenceId>
+      <TypeId>20</TypeId>
+    </column>
+    <column id="306" parent="269" name="employee_id">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StateNumber>1511</StateNumber>
+      <StoredType>bigint|0s</StoredType>
+      <TypeId>20</TypeId>
+    </column>
+    <column id="307" parent="269" name="rating">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StateNumber>1511</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="308" parent="269" name="comment">
+      <Position>4</Position>
+      <StateNumber>1511</StateNumber>
+      <StoredType>text|0s</StoredType>
+      <TypeId>25</TypeId>
+    </column>
+    <column id="309" parent="269" name="created_at">
+      <DefaultExpression>CURRENT_TIMESTAMP</DefaultExpression>
+      <Position>5</Position>
+      <StateNumber>1511</StateNumber>
+      <StoredType>timestamp|0s</StoredType>
+      <TypeId>1114</TypeId>
+    </column>
+    <foreign-key id="310" parent="269" name="reviews_employee_id_fkey">
+      <ColNames>employee_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>49828</ObjectId>
+      <OnDelete>cascade</OnDelete>
+      <StateNumber>1511</StateNumber>
+      <RefKeyColPositions>1</RefKeyColPositions>
+      <RefTableId>49761</RefTableId>
+    </foreign-key>
+    <index id="311" parent="269" name="reviews_pkey">
+      <ColNames>id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>49826</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>1511</StateNumber>
+      <Unique>1</Unique>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <index id="312" parent="269" name="idx_reviews_employee_id">
+      <ColNames>employee_id</ColNames>
+      <ObjectId>49833</ObjectId>
+      <StateNumber>1512</StateNumber>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <key id="313" parent="269" name="reviews_pkey">
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>49827</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>1511</StateNumber>
+      <UnderlyingIndexId>49826</UnderlyingIndexId>
     </key>
   </database-model>
 </dataSource>

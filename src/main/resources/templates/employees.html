@@ -68,39 +68,30 @@
             border: 2px solid #3b82f6;
         }
         .firstbody {
-            /* Фон и градиент */
             background: linear-gradient(135deg, #6b7280, #1f2937);
             backdrop-filter: blur(8px);
-            /* Тень */
             box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
-            /* Позиционирование и центрирование */
             position: sticky;
             top: 0;
-            margin: 24px auto 0 auto; /* Центрирование по горизонтали */
-            width: 90%; /* Более адаптивная ширина */
-            max-width: 1200px; /* Максимальная ширина */
-            /* Отступы */
+            margin: 24px auto 0 auto;
+            width: 90%;
+            max-width: 1200px;
             padding: 16px 0;
-            /* Выравнивание текста */
-            text-align: center; /* Центрирование текста */
+            text-align: center;
             color: rgb(255, 255, 255);
-            /* Шрифт */
             font-family: "Segoe UI", sans-serif;
             font-size: 16px;
             font-weight: 400;
             line-height: 1.6;
-            /* Разное */
             box-sizing: border-box;
             z-index: 1000;
-            border-radius: 8px; /* Добавлены скругленные углы */
-            /* Анимация при наведении */
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
         .firstbody:hover {
             box-shadow: rgba(0, 0, 0, 0.2) 0px 6px 12px 0px;
             transform: translateY(-2px);
         }
-        /* Для лучшей читаемости на мобильных устройствах */
         @media (max-width: 768px) {
             .firstbody {
                 width: 95%;
@@ -129,6 +120,14 @@
     </style>
 </head>
 <body>
+<div class="container py-3">
+    <form th:action="@{/search}" method="get">
+        <label for="name">Поиск по имени:</label>
+        <input type="text" id="name" name="name" th:value="${searchName}" />
+        <button type="submit" class="btn btn-primary">Найти</button>
+    </form>
+</div>
+
 <div class="container py-5">
     <h1 class="mb-4 animate__animated animate__bounceIn">Список сотрудников</h1>
     <a th:href="@{/employee/add}" class="btn btn-primary mb-3" th:aria-label="'Добавить сотрудника'" lang="ru">
@@ -145,32 +144,32 @@
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="me-3">
-                            <img th:src="${employee.photoPath != null} ? ${employee.photoPath} : '/images/default.jpg'"
+                            <img th:src="@{${employee.photoPath ?: '/images/default.jpg'}}"
                                  class="rounded-circle"
                                  style="width: 50px; height: 50px;"
-                                 th:alt="'Фото ' + ${employee.name}"/>
+                                 th:alt="'Фото ' + ${employee.name ?: 'Сотрудник'}"/>
                         </div>
                         <h5 class="card-title mb-0" th:text="${employee.name} ?: 'Имя не указано'">Имя сотрудника</h5>
                     </div>
                     <p class="card-text">
-                        <strong>Email:</strong> <span th:text="${employee.email != null} ? ${employee.email} : 'Не указан'"></span><br>
+                        <strong>Email:</strong> <span th:text="${employee.email ?: 'Не указан'}"></span><br>
                         <strong>Навыки:</strong>
-                        <span th:if="${employee.skills != null and !employee.skills.isEmpty()}">
+                        <span th:if="${#lists.isEmpty(employee.skills)}">Не указаны</span>
+                        <span th:unless="${#lists.isEmpty(employee.skills)}">
                             <span th:each="skill, iterStat : ${employee.skills}"
                                   th:text="${skill} + (${iterStat.last} ? '' : ', ')"></span>
                         </span>
-                        <span th:unless="${employee.skills != null and !employee.skills.isEmpty()}">Не указаны</span>
                     </p>
                     <div class="mt-auto d-flex gap-2">
                         <a th:href="@{'/employee/' + ${employee.id}}"
                            class="btn btn-outline-primary"
-                           th:aria-label="'Просмотреть профиль ' + ${employee.name} ?: 'Сотрудник'"
+                           th:aria-label="'Просмотреть профиль ' + ${employee.name ?: 'Сотрудник'}"
                            lang="ru">
                             <i class="bi bi-eye"></i> <span>Просмотр</span>
                         </a>
                         <a th:href="@{'/employee/edit/' + ${employee.id}}"
                            class="btn btn-outline-secondary"
-                           th:aria-label="'Редактировать ' + ${employee.name} ?: 'Сотрудник'"
+                           th:aria-label="'Редактировать ' + ${employee.name ?: 'Сотрудник'}"
                            lang="ru">
                             <i class="bi bi-pencil"></i> <span>Редактировать</span>
                         </a>
@@ -178,9 +177,9 @@
                 </div>
             </div>
         </div>
-        <div th:if="${employees == null or employees.isEmpty()}" class="col-12">
+        <div th:if="${#lists.isEmpty(employees)}" class="col-12">
             <div class="alert alert-info text-center animate__animated animate__bounceIn">
-                Сотрудники не найд bowls. Добавьте нового сотрудника!
+                Сотрудники не найдены. Добавьте нового сотрудника!
             </div>
         </div>
     </div>

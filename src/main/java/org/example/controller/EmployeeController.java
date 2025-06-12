@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Employee;
+import org.example.model.Review;
 import org.example.service.EmployeeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -98,14 +100,19 @@ public class EmployeeController {
                     employee.setPhotoPath("/images/default.jpg");
                 }
             }
+            // Создаем новый Review с employeeId, без id
+            Review review = new Review();
+            review.setEmployeeId(id);
+            log.debug("Инициализация Review для формы: id={}, employeeId={}", review.getId(), review.getEmployeeId());
             model.addAttribute("employee", employee);
+            model.addAttribute("review", review);
             return "employee-details";
         } catch (IllegalArgumentException e) {
             log.warn("Сотрудник с ID {} не найден", id);
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/";
         } catch (Exception e) {
-            log.error("Ошибка при загрузке сотрудника с ID {}: {}", id, e.getMessage());
+            log.error("Ошибка при загрузке сотрудника с ID {}: {}", id, e.getMessage(), e);
             redirect.addFlashAttribute("error", "Ошибка при загрузке сотрудника");
             return "redirect:/";
         }
@@ -171,6 +178,112 @@ public class EmployeeController {
         } catch (Exception e) {
             log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника");
+            return "redirect:/";
+        }
+    }
+
+    @GetMapping("/search")
+    public String searchEmployees(@RequestParam(defaultValue = "") String name,
+                                  @RequestParam(defaultValue = "0") int page,
+                                  Model model) {
+        int pageSize = 10;
+        try {
+            log.debug("Поиск сотрудников по имени: {}, страница: {}, размер: {}", name, page, pageSize);
+            List<Employee> employees = employeeService.findByNameContaining(name, page * pageSize, pageSize);
+            log.debug("Найдено сотрудников: {}", employees.size());
+            long totalEmployees = employeeService.count();
+            int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
+
+            model.addAttribute("employees", employees);
+            model.addAttribute("currentPage", page);
+            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("searchName", name);
+            return "employees";
+        } catch (IllegalArgumentException e) {
+            log.error("Некорректные параметры поиска: имя={}, страница={}: {}", name, page, e.getMessage());
+            model.addAttribute("error", "Некорректные параметры поиска");
+            return "employees";
+        } catch (Exception e) {
+            log.error("Ошибка при поиске сотрудников: имя={}, страница={}: {}", name, page, e.getMessage());
+            model.addAttribute("error", "Ошибка при поиске сотрудников");
+            return "employees";
+        }
+    }
+
+    @PostMapping("/employee/{id}/review")
+    public String addReview(@PathVariable Long id,
+                            @Valid @ModelAttribute("review") Review review,
+                            BindingResult result,
+                            RedirectAttributes redirect) {
+        log.info("Попытка добавить отзыв для сотрудника ID: {}", id);
+        log.debug("Данные отзыва: employeeId={}, rating={}, comment={}",
+                review.getEmployeeId(), review.getRating(), review.getComment());
+
+        if (!employeeService.existsById(id)) {
+            log.warn("Сотрудник с ID {} не найден", id);
+            redirect.addFlashAttribute("error", "Сотрудник не найден");
+            return "redirect:/";
+        }
+
+        if (review.getEmployeeId() == null || !review.getEmployeeId().equals(id)) {
+            log.warn("Некорректный employeeId: получено {}, ожидалось {}",
+                    review.getEmployeeId(), id);
+            result.rejectValue("employeeId", "error.review",
+                    "Некорректный ID сотрудника");
+        }
+
+        if (result.hasErrors()) {
+            log.warn("Ошибки валидации отзыва: {}", result.getAllErrors());
+            result.getFieldErrors().forEach(error ->
+                    log.warn("Ошибка в поле {}: {}", error.getField(), error.getDefaultMessage()));
+            redirect.addFlashAttribute("error", "Ошибка в данных отзыва: " +
+                    result.getAllErrors().stream()
+                            .map(e -> e.getDefaultMessage())
+                            .collect(Collectors.joining(", ")));
+            redirect.addFlashAttribute("org.springframework.validation.BindingResult.review", result);
+            redirect.addFlashAttribute("review", review);
+            return "redirect:/employee/" + id;
+        }
+
+        try {
+            employeeService.saveReview(review);
+            log.info("Отзыв успешно сохранен для сотрудника ID: {}", id);
+            redirect.addFlashAttribute("success", "Отзыв успешно добавлен");
+        } catch (Exception e) {
+            log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}",
+                    id, e.getMessage(), e);
+            redirect.addFlashAttribute("error", "Ошибка при добавлении отзыва: " + e.getMessage());
+        }
+        return "redirect:/employee/" + id;
+    }
+
+
+    @GetMapping("/employee/{id}/reviews")
+    public String viewReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+        try {
+            Employee employee = employeeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
+            List<Review> reviews = employeeService.findReviewsByEmployeeId(id);
+            Double averageRating = employeeService.getAverageRating(id);
+
+            if (employee.getPhotoPath() != null) {
+                Path filePath = Paths.get(UPLOAD_DIR, employee.getPhotoPath().replace("/images/", ""));
+                if (!Files.exists(filePath)) {
+                    employee.setPhotoPath("/images/default.jpg");
+                }
+            }
+
+            model.addAttribute("employee", employee);
+            model.addAttribute("reviews", reviews);
+            model.addAttribute("averageRating", averageRating);
+            return "employee-reviews";
+        } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник с ID {} не найден", id);
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке отзывов для сотрудника ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", "Ошибка при загрузке отзывов");
             return "redirect:/";
         }
     }

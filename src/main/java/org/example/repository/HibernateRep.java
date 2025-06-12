@@ -2,7 +2,9 @@ package org.example.repository;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.example.model.Education;
 import org.example.model.Employee;
+import org.example.model.Review;
 import org.example.model.Skills;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -24,9 +26,15 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
 
     public HibernateRep() {
         try {
-            this.sessionFactory = new Configuration()
-                    .configure() // Загружает hibernate.cfg.xml
-                    .buildSessionFactory();
+            Configuration configuration = new Configuration()
+                    .configure()
+                    // Добавляем сканирование пакета с сущностями
+                    .addPackage("org.example.model")
+                    .addAnnotatedClass(Employee.class)
+                    .addAnnotatedClass(Review.class)
+                    .addAnnotatedClass(Skills.class) // Если используется
+                    .addAnnotatedClass(Education.class); // Если используется
+            this.sessionFactory = configuration.buildSessionFactory();
             log.info("SessionFactory успешно создан");
         } catch (Exception e) {
             log.error("Ошибка при создании SessionFactory", e);
@@ -447,13 +455,14 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
             log.warn("Попытка проверить существование сотрудника с null ID");
             return false;
         }
+        log.debug("Проверка существования сотрудника с ID: {}", id);
         Session session = getSession();
         try {
-            return session.createQuery("SELECT COUNT(*) > 0 FROM Employee e WHERE e.id = :id", Boolean.class)
+            return session.createQuery("SELECT COUNT(e) FROM Employee e WHERE e.id = :id", Long.class)
                     .setParameter("id", id)
-                    .getSingleResult();
+                    .getSingleResult() > 0;
         } catch (Exception e) {
-            log.error("Ошибка при проверке существования сотрудника с ID: {}", id, e);
+            log.error("Ошибка при проверке существования сотрудника с ID {}: {}", id, e.getMessage(), e);
             return false;
         } finally {
             if (session.isOpen()) {
@@ -503,11 +512,19 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
         Session session = getSession();
         try {
-            return session.createQuery("FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
+            List<Employee> employees = session.createQuery(
+                            "FROM Employee e LEFT JOIN FETCH e.skills WHERE LOWER(e.name) LIKE LOWER(:namePart)", Employee.class)
                     .setParameter("namePart", "%" + namePart + "%")
                     .setFirstResult(offset)
                     .setMaxResults(limit)
                     .getResultList();
+            // Гарантируем, что skills не null
+            employees.forEach(e -> {
+                if (e.getSkills() == null) {
+                    e.setSkills(new HashSet<>());
+                }
+            });
+            return employees;
         } catch (Exception e) {
             log.error("Ошибка при поиске сотрудников по имени с пагинацией: {}", namePart, e);
             return Collections.emptyList();
@@ -666,7 +683,60 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
             }
         }
     }
+    @Override
+    public void saveReview(Review review) {
+        Objects.requireNonNull(review, "Отзыв не может быть null");
+        Objects.requireNonNull(review.getEmployeeId(), "ID сотрудника в отзыве не может быть null");
+        if (review.getId() != null) {
+            log.warn("Попытка сохранить Review с установленным id: {}. Сбрасываем id для persist", review.getId());
+            review.setId(null); // Сбрасываем id, чтобы persist работал как для нового объекта
+        }
+        log.info("Сохранение отзыва в БД: id={}, employeeId={}, rating={}, comment={}",
+                review.getId(), review.getEmployeeId(), review.getRating(), review.getComment());
+        Session session = getSession();
+        try {
+            session.beginTransaction();
+            session.persist(review);
+            session.getTransaction().commit();
+            log.debug("Отзыв успешно сохранен в БД");
+        } catch (Exception e) {
+            if (session.getTransaction().isActive()) {
+                session.getTransaction().rollback();
+                log.debug("Транзакция откатана для saveReview");
+            }
+            log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}",
+                    review.getEmployeeId(), e.getMessage(), e);
+            throw new RuntimeException("Не удалось сохранить отзыв в БД", e);
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для saveReview");
+            }
+        }
+    }
 
+    @Override
+    public List<Review> findReviewsByEmployeeId(Long employeeId) {
+        if (employeeId == null) {
+            log.warn("Попытка найти отзывы с null ID сотрудника");
+            return Collections.emptyList();
+        }
+        log.debug("Получение отзывов для сотрудника ID: {}", employeeId);
+        Session session = getSession();
+        try {
+            return session.createQuery("FROM Review r WHERE r.employeeId = :employeeId", Review.class)
+                    .setParameter("employeeId", employeeId)
+                    .getResultList();
+        } catch (Exception e) {
+            log.error("Ошибка при поиске отзывов для сотрудника ID: {}", employeeId, e);
+            return Collections.emptyList();
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для findReviewsByEmployeeId");
+            }
+        }
+    }
 
     @Override
     public List<Employee> findByNameOrEmail(String name, String email) {
