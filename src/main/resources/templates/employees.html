@@ -122,10 +122,28 @@
 </head>
 <body>
 <div class="container py-3">
-    <form th:action="@{/search}" method="get">
-        <label for="name">Поиск по имени:</label>
-        <input type="text" id="name" name="name" th:value="${searchName}" />
-        <button type="submit" class="btn btn-primary">Найти</button>
+    <form th:action="@{/search}" method="get" class="row g-3">
+        <div class="col-md-4">
+            <label for="name" class="form-label">Поиск по имени:</label>
+            <input type="text" id="name" name="name" th:value="${searchName}"
+                   class="form-control" placeholder="Введите имя...">
+        </div>
+        <div class="col-md-4">
+            <label for="skill" class="form-label">Навык:</label>
+            <select id="skill" name="skill" class="form-select">
+                <option value="">Все навыки</option>
+                <option th:each="skill : ${allSkills}" th:value="${skill}"
+                        th:text="${skill}"></option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-search"></i> Найти
+            </button>
+            <a th:href="@{/}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-counterclockwise"></i> Сбросить
+            </a>
+        </div>
     </form>
 </div>
 <hr class="divider">
