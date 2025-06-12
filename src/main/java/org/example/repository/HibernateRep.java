@@ -718,17 +718,17 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     @Override
     public List<Review> findReviewsByEmployeeId(Long employeeId) {
         if (employeeId == null) {
-            log.warn("Попытка найти отзывы с null ID сотрудника");
+            log.warn("Попытка найти отзывы с null employeeId");
             return Collections.emptyList();
         }
-        log.debug("Получение отзывов для сотрудника ID: {}", employeeId);
+        log.debug("Поиск отзывов для сотрудника ID: {}", employeeId);
         Session session = getSession();
         try {
-            return session.createQuery("FROM Review r WHERE r.employeeId = :employeeId", Review.class)
+            return session.createQuery("FROM Review r WHERE r.employeeId = :employeeId ORDER BY r.createdAt DESC", Review.class)
                     .setParameter("employeeId", employeeId)
                     .getResultList();
         } catch (Exception e) {
-            log.error("Ошибка при поиске отзывов для сотрудника ID: {}", employeeId, e);
+            log.error("Ошибка при поиске отзывов для сотрудника ID {}: {}", employeeId, e.getMessage(), e);
             return Collections.emptyList();
         } finally {
             if (session.isOpen()) {

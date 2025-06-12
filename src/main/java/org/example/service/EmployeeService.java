@@ -70,6 +70,23 @@ public class EmployeeService {
         return employeeRepository.findReviewsByEmployeeId(employeeId);
     }
 
+
+
+    @Transactional(readOnly = true)
+    public double calculateAverageRating(Long employeeId) {
+        log.debug("Вычисление среднего рейтинга для сотрудника ID: {}", employeeId);
+        List<Review> reviews = employeeRepository.findReviewsByEmployeeId(employeeId);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        double average = reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+        log.debug("Средний рейтинг для сотрудника ID {}: {}", employeeId, average);
+        return average;
+    }
+
     @Transactional(readOnly = true)
     public Double getAverageRating(@NotNull Long employeeId) {
         Objects.requireNonNull(employeeId, "ID сотрудника не может быть null");

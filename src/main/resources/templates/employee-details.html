@@ -300,6 +300,9 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Отправить отзыв</button>
                 </form>
+                <a th:href="@{/employee/{id}/reviews(id=${employee.id})}" class="btn btn-outline-secondary mt-3">
+                    <i class="bi bi-list-ul"></i> Посмотреть все отзывы
+                </a>
             </div>
         </section>
     </div>

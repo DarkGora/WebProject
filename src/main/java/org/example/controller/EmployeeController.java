@@ -89,6 +89,32 @@ public class EmployeeController {
         }
     }
 
+    @GetMapping("/employee/{id}/reviews")
+    public String viewEmployeeReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+        log.info("Запрос на просмотр отзывов для сотрудника ID: {}", id);
+        try {
+            Employee employee = employeeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
+            List<Review> reviews = employeeService.findReviewsByEmployeeId(id);
+            double averageRating = employeeService.calculateAverageRating(id);
+            log.debug("Найдено {} отзывов для сотрудника ID: {}. Средний рейтинг: {}",
+                    reviews.size(), id, averageRating);
+
+            model.addAttribute("employee", employee);
+            model.addAttribute("reviews", reviews);
+            model.addAttribute("averageRating", String.format("%.2f", averageRating));
+            return "employee-reviews";
+        } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник с ID {} не найден", id);
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/";
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке отзывов для сотрудника ID {}: {}", id, e.getMessage(), e);
+            redirect.addFlashAttribute("error", "Ошибка при загрузке отзывов");
+            return "redirect:/employee/" + id;
+        }
+    }
+
     @GetMapping("/employee/{id}")
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         try {
@@ -257,36 +283,6 @@ public class EmployeeController {
         return "redirect:/employee/" + id;
     }
 
-
-    @GetMapping("/employee/{id}/reviews")
-    public String viewReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
-        try {
-            Employee employee = employeeService.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-            List<Review> reviews = employeeService.findReviewsByEmployeeId(id);
-            Double averageRating = employeeService.getAverageRating(id);
-
-            if (employee.getPhotoPath() != null) {
-                Path filePath = Paths.get(UPLOAD_DIR, employee.getPhotoPath().replace("/images/", ""));
-                if (!Files.exists(filePath)) {
-                    employee.setPhotoPath("/images/default.jpg");
-                }
-            }
-
-            model.addAttribute("employee", employee);
-            model.addAttribute("reviews", reviews);
-            model.addAttribute("averageRating", averageRating);
-            return "employee-reviews";
-        } catch (IllegalArgumentException e) {
-            log.warn("Сотрудник с ID {} не найден", id);
-            redirect.addFlashAttribute("error", e.getMessage());
-            return "redirect:/";
-        } catch (Exception e) {
-            log.error("Ошибка при загрузке отзывов для сотрудника ID {}: {}", id, e.getMessage());
-            redirect.addFlashAttribute("error", "Ошибка при загрузке отзывов");
-            return "redirect:/";
-        }
-    }
 
     private String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
