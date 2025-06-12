@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Employee;
 import org.example.model.Education;
+import org.example.model.Review;
 import org.example.repository.EmployeeRepository;
 import org.example.repository.EducationRepository;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,65 @@ public class EmployeeService {
         log.debug("Получение сотрудников с сортировкой по: {} {}", sortField, ascending);
         return employeeRepository.findAllSorted(sortField, ascending);
     }
+    @Transactional(readOnly = true)
+    public boolean existsById(Long id) {
+        log.debug("Проверка существования сотрудника с ID: {}", id);
+        return employeeRepository.existsById(id);
+    }
+
+    @Transactional
+    public void saveReview(@NotNull @Valid Review review) {
+        Objects.requireNonNull(review, "Отзыв не может быть null");
+        log.info("Сохранение отзыва: id={}, employeeId={}, rating={}, comment={}",
+                review.getId(), review.getEmployeeId(), review.getRating(), review.getComment());
+        try {
+            employeeRepository.saveReview(review);
+            log.debug("Отзыв успешно передан в репозиторий");
+        } catch (Exception e) {
+            log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}",
+                    review.getEmployeeId(), e.getMessage(), e);
+            throw new RuntimeException("Не удалось сохранить отзыв", e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Review> findReviewsByEmployeeId(@NotNull Long employeeId) {
+        Objects.requireNonNull(employeeId, "ID сотрудника не может быть null");
+        log.debug("Получение отзывов для сотрудника ID: {}", employeeId);
+        return employeeRepository.findReviewsByEmployeeId(employeeId);
+    }
+
+
+
+    @Transactional(readOnly = true)
+    public double calculateAverageRating(Long employeeId) {
+        log.debug("Вычисление среднего рейтинга для сотрудника ID: {}", employeeId);
+        List<Review> reviews = employeeRepository.findReviewsByEmployeeId(employeeId);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        double average = reviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+        log.debug("Средний рейтинг для сотрудника ID {}: {}", employeeId, average);
+        return average;
+    }
+
+    @Transactional(readOnly = true)
+    public Double getAverageRating(@NotNull Long employeeId) {
+        Objects.requireNonNull(employeeId, "ID сотрудника не может быть null");
+        log.debug("Получение среднего рейтинга для сотрудника ID: {}", employeeId);
+        List<Review> reviews = findReviewsByEmployeeId(employeeId);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        return reviews.stream()
+                .mapToDouble(Review::getRating)
+                .average()
+                .orElse(0.0);
+    }
+
 
     @Transactional(readOnly = true)
     public Optional<Employee> findById(Long id) {

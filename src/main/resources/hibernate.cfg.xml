@@ -21,9 +21,12 @@
     <property name="hibernate.order_updates">true</property>
     <property name="hibernate.cache.use_second_level_cache">false</property>
     <property name="hibernate.cache.use_query_cache">false</property>
-
+    <!-- Настройки Hibernate -->
+    <property name="hibernate.connection.autocommit">false</property>
     <!-- Маппинг сущностей -->
     <mapping class="org.example.model.Employee"/>
     <mapping class="org.example.model.Education"/>
+    <mapping class="org.example.model.Review"/>
+    <mapping class="org.example.model.Skills"/>
   </session-factory>
 </hibernate-configuration>

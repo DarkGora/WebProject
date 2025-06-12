@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Профиль сотрудника">
-    <title th:text="${employee?.name != null} ? ${employee.name} + ' - Профиль сотрудника' : 'Профиль сотрудника'">
-        Профиль сотрудника
-    </title>
+    <title th:text="${employee?.name} ?: 'Профиль сотрудника'">Профиль сотрудника</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-
     <style>
         body {
             background: linear-gradient(135deg, #6b7280, #1f2937);
@@ -24,7 +21,7 @@
             border-radius: 10px;
         }
         .nav-link {
-            color: #000000;
+            color: #ffffff;
             transition: transform 0.3s ease, background 0.3s ease;
         }
         .nav-link:hover, .nav-link.active {
@@ -87,6 +84,10 @@
         .badge:hover {
             transform: scale(1.15);
         }
+        .error {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+        }
         @keyframes slideIn {
             from { opacity: 0; transform: translateX(-20px); }
             to { opacity: 1; transform: translateX(0); }
@@ -123,10 +124,13 @@
         <a href="#education" class="nav-link" th:aria-label="'Образование'" lang="ru">
             <i class="bi bi-mortarboard"></i> <span>Образование</span>
         </a>
+        <a href="#reviews" class="nav-link" th:arial-label="'Отзыв'" lang="ru">
+            <i class="bi bi-book"></i> <span>Отзыв</span>
+        </a>
         <form th:action="@{'/employee/delete/' + ${employee.id}}" method="post" class="d-inline" onsubmit="return confirmDelete()">
             <input type="hidden" name="_method" value="delete" />
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" th:if="${_csrf != null}"/>
-            <button type="submit" class="btn btn-outline-danger" th:aria-label="'Удалить ' + ${employee.name} ?: 'Сотрудник'">
+            <button type="submit" class="btn btn-outline-danger" th:aria-label="'Удалить ' + ${employee.name ?: 'Сотрудник'}">
                 <i class="bi bi-trash"></i> <span>Удалить</span>
             </button>
         </form>
@@ -141,21 +145,15 @@
 
     <div class="profile-header d-flex align-items-start gap-4 animate__animated animate__fadeIn">
         <div class="profile-photo-container">
-                <div class="photo">
-                    <img th:src="${employee.photoPath != null} ? ${employee.photoPath} : '/images/default.jpg'"
-                         alt="Фото сотрудника" class="profile-photo"/>
-                </div>
-            <div th:unless="${employee?.photoPath != null}" class="photo-placeholder text-center">
-                <i class="bi bi-person-circle fs-1"></i>
-                <span>Нет фото</span>
-            </div>
+            <img th:src="@{${employee.photoPath ?: '/images/default.jpg'}}"
+                 alt="Фото сотрудника" class="profile-photo"/>
         </div>
         <div class="profile-info flex-grow-1">
-            <h1 th:text="${employee?.name != null} ? ${employee.name} : 'Имя сотрудника'">Имя сотрудника</h1>
+            <h1 th:text="${employee.name ?: 'Имя сотрудника'}">Имя сотрудника</h1>
             <div class="contact-info">
                 <p>
                     <i class="bi bi-telephone"></i> <strong>Телефон:</strong>
-                    <span th:if="${employee?.phoneNumber != null}">
+                    <span th:if="${employee.phoneNumber}">
                         <a th:href="'tel:' + ${employee.phoneNumber}"
                            th:text="${employee.phoneNumber}"
                            class="copyable"></a>
@@ -165,11 +163,11 @@
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </span>
-                    <span th:unless="${employee?.phoneNumber != null}">Не указан</span>
+                    <span th:unless="${employee.phoneNumber}">Не указан</span>
                 </p>
                 <p>
                     <i class="bi bi-envelope"></i> <strong>Email:</strong>
-                    <span th:if="${employee?.email != null}">
+                    <span th:if="${employee.email}">
                         <a th:href="'mailto:' + ${employee.email}"
                            th:text="${employee.email}"
                            class="copyable"></a>
@@ -179,11 +177,11 @@
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </span>
-                    <span th:unless="${employee?.email != null}">Не указан</span>
+                    <span th:unless="${employee.email}">Не указан</span>
                 </p>
                 <p>
                     <i class="bi bi-telegram"></i> <strong>Telegram:</strong>
-                    <span th:if="${employee?.telegram != null}">
+                    <span th:if="${employee.telegram}">
                         <a th:href="@{'https://t.me/' + ${#strings.replace(employee.telegram, '@', '')}}"
                            th:text="${employee.telegram}"
                            target="_blank"
@@ -194,7 +192,7 @@
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </span>
-                    <span th:unless="${employee?.telegram != null}">Не указан</span>
+                    <span th:unless="${employee.telegram}">Не указан</span>
                 </p>
             </div>
         </div>
@@ -208,7 +206,7 @@
             </div>
             <div class="section-content">
                 <div class="text-block formatted-text"
-                     th:text="${employee?.about != null} ? ${employee.about} : 'Информация не указана'">
+                     th:text="${employee.about ?: 'Информация не указана'}">
                     Информация не указана
                 </div>
             </div>
@@ -223,7 +221,7 @@
             </div>
             <div class="section-content">
                 <div class="text-block formatted-text"
-                     th:text="${employee?.resume != null} ? ${employee.resume} : 'Опыт работы не указан'">
+                     th:text="${employee.resume ?: 'Опыт работы не указан'}">
                     Опыт работы не указан
                 </div>
             </div>
@@ -237,13 +235,13 @@
                 <h3 class="section-title">Навыки</h3>
             </div>
             <div class="section-content">
-                <div class="skills-container" th:if="${employee?.skills != null and !employee.skills.isEmpty()}">
+                <div class="skills-container" th:unless="${#lists.isEmpty(employee.skills)}">
                     <span th:each="skill : ${employee.skills}"
                           class="badge me-2 mb-2"
                           th:text="${skill}"></span>
                 </div>
                 <div class="no-skills formatted-text"
-                     th:unless="${employee?.skills != null and !employee.skills.isEmpty()}">
+                     th:if="${#lists.isEmpty(employee.skills)}">
                     Навыки не указаны
                 </div>
             </div>
@@ -257,19 +255,57 @@
                 <h3 class="section-title">Образование</h3>
             </div>
             <div class="section-content">
-                <div th:if="${employee?.educations != null and !employee.educations.isEmpty()}">
+                <div th:unless="${#lists.isEmpty(employee.educations)}">
                     <div th:each="education : ${employee.educations}" class="education-item mb-3">
-                        <h5 th:text="${education.university} ?: 'Университет не указан'">Университет</h5>
+                        <h5 th:text="${education.university ?: 'Университет не указан'}">Университет</h5>
                         <p>
-                            <strong>Степень:</strong> <span th:text="${education.degree} ?: 'Степень не указана'">Степень</span><br>
-                            <strong>Период:</strong> <span th:text="${education.yearStart} + ' - ' + ${education.yearEnd} ?: 'Период не указан'">Годы</span>
+                            <strong>Степень:</strong> <span th:text="${education.degree ?: 'Степень не указана'}">Степень</span><br>
+                            <strong>Период:</strong> <span th:text="${education.yearStart} + ' - ' + ${education.yearEnd ?: 'Период не указан'}">Годы</span>
                         </p>
                     </div>
                 </div>
                 <div class="text-block formatted-text"
-                     th:unless="${employee?.educations != null and !employee.educations.isEmpty()}">
+                     th:if="${#lists.isEmpty(employee.educations)}">
                     Образование не указано
                 </div>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section id="reviews" class="profile-section">
+            <div class="section-header">
+                <i class="bi bi-star section-icon"></i>
+                <h3 class="section-title">Добавить отзыв</h3>
+            </div>
+            <div class="section-content">
+                <div th:if="${error}" class="alert alert-danger">
+                    <span th:text="${error}"></span>
+                </div>
+                <div th:if="${success}" class="alert alert-success">
+                    <span th:text="${success}"></span>
+                </div>
+                <form th:action="@{/employee/{id}/review(id=${employee.id})}" th:object="${review}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" th:if="${_csrf != null}"/>
+                    <input type="hidden" th:field="*{employeeId}" th:value="${employee.id}"/>
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Рейтинг (1-5):</label>
+                        <input type="number" id="rating" th:field="*{rating}" class="form-control" min="1" max="5" required />
+                        <span th:errors="*{rating}" class="error"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Комментарий:</label>
+                        <textarea id="comment" th:field="*{comment}" class="form-control" rows="4"></textarea>
+                        <span th:errors="*{comment}" class="error"></span>
+                    </div>
+                    <div class="mb-3">
+                        <span th:errors="*{employeeId}" class="error"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+                </form>
+                <a th:href="@{/employee/{id}/reviews(id=${employee.id})}" class="btn btn-outline-secondary mt-3">
+                    <i class="bi bi-list-ul"></i> Посмотреть все отзывы
+                </a>
             </div>
         </section>
     </div>
@@ -348,12 +384,12 @@
                         showConfirmButton: false
                     });
                 }).catch(() => {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
                     document.execCommand('copy');
-                    document.body.removeChild(textArea);
+                    document.body.removeChild(textarea);
                     Swal.fire({
                         icon: 'success',
                         title: 'Скопировано!',

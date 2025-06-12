@@ -1,6 +1,7 @@
 package org.example.repository;
 
 import org.example.model.Employee;
+import org.example.model.Review;
 import org.example.model.Skills;
 
 import java.util.List;
@@ -33,4 +34,6 @@ public interface EmployeeRepository {
     List<String> findAllDistinctSchools();
     int updateEmailById(Long id, String newEmail);
     int deleteBySchool(String school);
+    void saveReview(Review review);
+    List<Review> findReviewsByEmployeeId(Long employeeId);
 }

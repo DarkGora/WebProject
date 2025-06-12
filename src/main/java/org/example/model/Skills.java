@@ -4,11 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Перечисление навыков сотрудников с категоризацией.
- */
 public enum Skills {
-    // Backend навыки
     JAVA("Backend"),
     SPRING("Backend"),
     SPRING_BOOT("Backend"),
@@ -16,7 +12,6 @@ public enum Skills {
     JPA("Backend"),
     SQL("Backend"),
 
-    // Frontend навыки
     HTML("Frontend"),
     CSS("Frontend"),
     JAVASCRIPT("Frontend"),
@@ -24,13 +19,11 @@ public enum Skills {
     ANGULAR("Frontend"),
     VUE("Frontend"),
 
-    // DevOps навыки
     DOCKER("DevOps"),
-    KUBERNETES("DevOps"),
+    HIBERNET("DevOps"),
     AWS("DevOps"),
     AZURE("DevOps"),
 
-    // Другие навыки
     GIT("Tools"),
     MAVEN("Tools"),
     GRADLE("Tools"),
