@@ -11,7 +11,9 @@ CREATE TABLE IF NOT EXISTS employees (
                                          photo_path VARCHAR(255),
                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+ALTER TABLE employees ADD COLUMN active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE employees ADD COLUMN position VARCHAR(255);
+ALTER TABLE employees ADD COLUMN department VARCHAR(255);
 -- Индекс для email
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees (email);
 -- Индекс для name (опционально, для ускорения поиска)
