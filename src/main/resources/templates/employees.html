@@ -3,219 +3,679 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Список сотрудников">
-    <title>Список сотрудников</title>
+    <meta name="description" content="Современная система управления сотрудниками">
+    <title>DarkGora | Список сотрудников</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/styles/profile.css}">
+    <!-- Подключение jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --dark-bg: #1a2035;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-light: #f8f9fa;
+            --text-muted: #adb5bd;
+        }
+
         body {
-            background: linear-gradient(135deg, #6b7280, #1f2937);
-            color: #ffffff;
-            font-family: 'Segoe UI', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
         }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
+
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .container-fluid {
+            padding: 0 2rem;
+        }
+
+        .search-container {
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 15px;
-            padding: 2rem;
+            padding: 1.5rem;
             backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
         }
+
         .card {
-            background: linear-gradient(145deg, #757575, #ffffff);
-            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            background: var(--card-bg);
             border: none;
-            border-radius: 15px;
-            overflow: hidden;
-            animation: slideIn 0.5s ease-out;
-        }
-        .card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-        .btn-primary {
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-            border: none;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
-            transform: scale(1.1);
-        }
-        .btn-outline-primary, .btn-outline-secondary {
-            transition: transform 0.3s ease, background-color 0.3s ease;
-        }
-        .btn-outline-primary:hover, .btn-outline-secondary:hover {
-            transform: scale(1.1);
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .alert {
-            border-radius: 10px;
-            animation: bounceIn 0.6s ease;
-        }
-        .pagination .page-link {
-            background: rgb(104, 99, 99);
-            color: #fb0000;
-            border: none;
-            transition: background 0.3s ease;
-        }
-        .pagination .page-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        .pagination .active .page-link {
-            background: #6b7280;
-        }
-        .rounded-circle {
-            object-fit: cover;
-            border: 2px solid #3b82f6;
-        }
-        .firstbody {
-            background: linear-gradient(135deg, #6b7280, #1f2937);
-            backdrop-filter: blur(8px);
-            box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px 0px;
-            position: sticky;
-            top: 0;
-            margin: 24px auto 0 auto;
-            width: 90%;
-            max-width: 1200px;
-            padding: 16px 0;
-            text-align: center;
-            color: rgb(255, 255, 255);
-            font-family: "Segoe UI", sans-serif;
-            font-size: 16px;
-            font-weight: 400;
-            line-height: 1.6;
-            box-sizing: border-box;
-            z-index: 1000;
-            border-radius: 8px;
+            border-radius: 12px;
             transition: all 0.3s ease;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+            height: 100%;
         }
-        .firstbody:hover {
-            box-shadow: rgba(0, 0, 0, 0.2) 0px 6px 12px 0px;
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            background: rgba(0, 0, 0, 0.1);
+            border-bottom: none;
+            padding: 1rem 1.25rem;
+        }
+
+        .employee-photo {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border: 2px solid rgba(102, 126, 234, 0.8);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .badge-skill {
+            background: rgba(102, 126, 234, 0.15);
+            color: #a7b3fd;
+            font-weight: 400;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 50px;
+            padding: 0.35rem 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fdb 0%, #6a3ba0 100%);
             transform: translateY(-2px);
         }
-        @media (max-width: 768px) {
-            .firstbody {
-                width: 95%;
-                padding: 12px 0;
-                font-size: 14px;
+
+        .btn-actions .btn {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 3px;
+            transition: all 0.3s;
+        }
+
+        .view-switcher .btn {
+            border-radius: 8px !important;
+        }
+
+        .stats-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-icon {
+            font-size: 1.75rem;
+            opacity: 0.8;
+        }
+
+        .pagination .page-item.active .page-link {
+            background: var(--primary-gradient);
+            border-color: transparent;
+        }
+
+        .pagination .page-link {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-light);
+            margin: 0 3px;
+            border-radius: 8px !important;
+        }
+
+        .pagination .page-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .department-filter {
+            position: sticky;
+            top: 20px;
+        }
+
+        .quick-actions {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .quick-action-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .quick-action-btn:hover {
+            transform: scale(1.1) translateY(-5px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 992px) {
+            .department-filter {
+                position: static;
+                margin-bottom: 2rem;
+            }
+
+            .quick-actions {
+                bottom: 20px;
+                right: 20px;
             }
         }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
+
+        /* Темная/светлая тема */
+        .theme-switcher {
+            cursor: pointer;
+            font-size: 1.25rem;
         }
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); }
+
+        body.light-theme {
+            --dark-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-light: #212529;
+            --text-muted: #6c757d;
+            background: #f8f9fa;
         }
-        @media (max-width: 576px) {
-            .card {
-                margin-bottom: 1.5rem;
-            }
-            .btn {
-                font-size: 0.85rem;
-                padding: 0.4rem;
-            }
+
+        .light-theme .card {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .light-theme .search-container {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .light-theme .stats-card {
+            background: rgba(255, 255, 255, 0.9);
         }
     </style>
 </head>
 <body>
-<div class="container py-3">
-    <form th:action="@{/search}" method="get">
-        <label for="name">Поиск по имени:</label>
-        <input type="text" id="name" name="name" th:value="${searchName}" />
-        <button type="submit" class="btn btn-primary">Найти</button>
-    </form>
-</div>
-<hr class="divider">
-<div class="container py-5">
-    <h1 class="mb-4 animate__animated animate__bounceIn">Список сотрудников</h1>
-    <a th:href="@{/employee/add}" class="btn btn-primary mb-3" th:aria-label="'Добавить сотрудника'" lang="ru">
-        <i class="bi bi-plus-circle"></i> <span>Добавить сотрудника</span>
-    </a>
-
-    <div th:if="${error != null}" class="alert alert-danger animate__animated animate__bounceIn">
-        <span th:text="${error}"></span>
+<!-- Навигация -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <i class="bi bi-people-fill me-2"></i>
+            <span>DarkGora</span>
+        </a>
+        <div class="d-flex align-items-center">
+            <div class="theme-switcher me-3" id="themeSwitcher">
+                <i class="bi bi-moon-fill"></i>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle" type="button"
+                        id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span>Администратор</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Настройки</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i>Помощь</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="dropdown-item">
+                                <i class="bi bi-box-arrow-right me-2"></i>Выйти
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
+</nav>
 
-    <div class="row g-4">
-        <div th:each="employee : ${employees}" class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="me-3">
-                            <img th:src="@{${employee.photoPath ?: '/images/default.jpg'}}"
-                                 class="rounded-circle"
-                                 style="width: 50px; height: 50px;"
-                                 th:alt="'Фото ' + ${employee.name ?: 'Сотрудник'}"/>
-                        </div>
-                        <h5 class="card-title mb-0" th:text="${employee.name} ?: 'Имя не указано'">Имя сотрудника</h5>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Фильтры и статистика -->
+        <div class="col-lg-3 mb-4">
+            <div class="stats-card animate__animated animate__fadeIn">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Всего сотрудников</h6>
+                        <h3 class="mb-0" id="totalEmployees" th:text="${totalEmployees}">0</h3>
                     </div>
-                    <p class="card-text">
-                        <strong>Email:</strong> <span th:text="${employee.email ?: 'Не указан'}"></span><br>
-                        <strong>Навыки:</strong>
-                        <span th:if="${#lists.isEmpty(employee.skills)}">Не указаны</span>
-                        <span th:unless="${#lists.isEmpty(employee.skills)}">
-                            <span th:each="skill, iterStat : ${employee.skills}"
-                                  th:text="${skill} + (${iterStat.last} ? '' : ', ')"></span>
-                        </span>
-                    </p>
-                    <div class="mt-auto d-flex gap-2">
-                        <a th:href="@{'/employee/' + ${employee.id}}"
-                           class="btn btn-outline-primary"
-                           th:aria-label="'Просмотреть профиль ' + ${employee.name ?: 'Сотрудник'}"
-                           lang="ru">
-                            <i class="bi bi-eye"></i> <span>Просмотр</span>
-                        </a>
-                        <a th:href="@{'/employee/edit/' + ${employee.id}}"
-                           class="btn btn-outline-secondary"
-                           th:aria-label="'Редактировать ' + ${employee.name ?: 'Сотрудник'}"
-                           lang="ru">
-                            <i class="bi bi-pencil"></i> <span>Редактировать</span>
-                        </a>
+                    <i class="bi bi-people-fill stats-icon text-primary"></i>
+                </div>
+            </div>
+
+            <div class="stats-card animate__animated animate__fadeIn animate__delay-1s">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Активных</h6>
+                        <h3 class="mb-0 text-success" id="activeEmployees" th:text="${activeEmployees}">0</h3>
                     </div>
+                    <i class="bi bi-check-circle-fill stats-icon text-success"></i>
+                </div>
+            </div>
+
+            <div class="stats-card animate__animated animate__fadeIn animate__delay-2s">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Отделов</h6>
+                        <h3 class="mb-0 text-info" id="departmentsCount" th:text="${departmentsCount}">0</h3>
+                    </div>
+                    <i class="bi bi-building-fill stats-icon text-info"></i>
+                </div>
+            </div>
+
+            <div class="card department-filter animate__animated animate__fadeIn">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Фильтры</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Отдел</label>
+                        <select class="form-select mb-3" id="departmentFilter" multiple>
+                            <option value="">Все отделы</option>
+                            <option th:each="dept : ${departments}"
+                                    th:value="${dept}"
+                                    th:text="${dept}"></option>
+                        </select>
+
+                        <label class="form-label">Должность</label>
+                        <select class="form-select mb-3" id="positionFilter" multiple>
+                            <option value="">Все должности</option>
+                            <option th:each="pos : ${positions}"
+                                    th:value="${pos}"
+                                    th:text="${pos}"></option>
+                        </select>
+
+                        <label class="form-label">Статус</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">Все</option>
+                            <option value="active">Активные</option>
+                            <option value="inactive">Неактивные</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100 mt-2" id="applyFilters">
+                        <i class="bi bi-funnel-fill me-1"></i>Применить
+                    </button>
                 </div>
             </div>
         </div>
-        <div th:if="${#lists.isEmpty(employees)}" class="col-12">
-            <div class="alert alert-info text-center animate__animated animate__bounceIn">
-                Сотрудники не найдены. Добавьте нового сотрудника!
+
+        <!-- Основной контент -->
+        <div class="col-lg-9">
+            <!-- Поиск и действия -->
+            <div class="search-container mb-4">
+                <form th:action="@{/search}" method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="name" class="form-label">Поиск по имени:</label>
+                        <input type="text" id="name" name="name" th:value="${searchName}"
+                               class="form-control" placeholder="Введите имя...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category" class="form-label">Категория навыков:</label>
+                        <select id="category" name="category" class="form-select" onchange="updateSkills()">
+                            <option value="">Все категории</option>
+                            <option th:each="category : ${T(org.example.model.Skills).getAllCategories()}"
+                                    th:value="${category}" th:text="${category}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="skill" class="form-label">Навык:</label>
+                        <select id="skill" name="skill" class="form-select">
+                            <option value="">Все навыки</option>
+                            <!-- Опции будут добавлены через JavaScript -->
+                        </select>
+                    </div>
+                    <div class="col-md-12 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-search"></i> Найти
+                        </button>
+                        <a th:href="@{/}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Сбросить
+                        </a>
+                    </div>
+                </form>
             </div>
+
+            <!-- Панель инструментов -->
+            <div class="d-flex justify-content-between mb-4">
+                <div class="btn-group view-switcher">
+                    <button type="button" class="btn btn-outline-primary active"
+                            data-view="cards" title="Показать карточки">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary"
+                            data-view="table" title="Показать таблицу">
+                        <i class="bi bi-list-ul"></i>
+                    </button>
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle"
+                            type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-down"></i> Сортировка
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                        <li><a class="dropdown-item" href="#" data-sort="name_asc">По имени (А-Я)</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="name_desc">По имени (Я-А)</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-sort="date_asc">По дате добавления (старые)</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="date_desc">По дате добавления (новые)</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Карточки сотрудников -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="employeesContainer">
+                <div th:each="employee : ${employees}" class="col">
+                    <div class="card h-100 employee-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" class="form-check-input me-2 employee-checkbox"
+                                       th:value="${employee.id}">
+                                <span class="badge bg-success" th:if="${employee.active}">Активен</span>
+                                <span class="badge bg-secondary" th:unless="${employee.active}">Неактивен</span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link text-white" type="button"
+                                        data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" th:href="@{'/employee/' + ${employee.id}}">
+                                        <i class="bi bi-eye me-2"></i>Просмотр
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" th:href="@{'/employee/edit/' + ${employee.id}}">
+                                        <i class="bi bi-pencil me-2"></i>Редактировать
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#">
+                                        <i class="bi bi-trash me-2"></i>Удалить
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <img th:src="@{${employee.photoPath ?: '/images/default.jpg'}}"
+                                     class="employee-photo rounded-circle me-3"
+                                     th:alt="'Фото ' + ${employee.name ?: 'Сотрудник'}"/>
+                                <div>
+                                    <h5 class="card-title mb-0" th:text="${employee.name} ?: 'Имя не указано'"></h5>
+                                    <small class="text-muted" th:text="${employee.position ?: 'Должность не указана'}"></small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-envelope me-2 text-muted"></i>
+                                    <span th:text="${employee.email ?: 'Не указан'}" class="text-truncate"></span>
+                                </div>
+                                <div class="d-flex align-items-center mb-1" th:if="${employee.phoneNumber}">
+                                    <i class="bi bi-telephone me-2 text-muted"></i>
+                                    <span th:text="${employee.phoneNumber}"></span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-building me-2 text-muted"></i>
+                                    <span th:text="${employee.department ?: 'Отдел не указан'}"></span>
+                                </div>
+                            </div>
+
+                            <div th:if="${not #lists.isEmpty(employee.skills)}" class="mb-3">
+                                <h6 class="small text-muted mb-2">Навыки:</h6>
+                                <div class="d-flex flex-wrap">
+                                    <span th:each="skill : ${employee.skills}"
+                                          class="badge-skill small">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        <span th:text="${skill}"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    Добавлен: <span th:text="${employee.createdAt}"></span>
+                                </small>
+                                <div class="btn-actions">
+                                    <a th:href="@{'tel:' + ${employee.phoneNumber}}" class="btn btn-sm btn-success" th:if="${employee.phoneNumber}" title="Позвонить">
+                                        <i class="bi bi-telephone"></i>
+                                    </a>
+                                    <a th:href="@{'mailto:' + ${employee.email}}" class="btn btn-sm btn-info"
+                                       th:if="${employee.email}" title="Написать">
+                                        <i class="bi bi-envelope"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(employees)}" class="col-12">
+                    <div class="alert alert-info text-center animate__animated animate__bounceIn">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Сотрудники не найдены. Добавьте нового сотрудника!
+                    </div>
+                </div>
+            </div>
+
+            <nav th:if="${totalPages > 1}" aria-label="Пагинация" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link" th:href="@{/(page=${currentPage - 1})}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li th:each="page : ${#numbers.sequence(0, totalPages - 1)}"
+                        class="page-item"
+                        th:classappend="${page == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/(page=${page})}" th:text="${page + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/(page=${currentPage + 1})}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
+</div>
 
-    <nav th:if="${totalPages > 1}" class="firstbody" aria-label="Пагинация сотрудников">
-        <ul class="pagination justify-content-center">
-            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                <a class="page-link"
-                   th:href="@{/(page=${currentPage - 1})}"
-                   th:aria-label="'Предыдущая страница'"
-                   lang="ru">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            <li th:each="page : ${#numbers.sequence(0, totalPages - 1)}"
-                class="page-item"
-                th:classappend="${page == currentPage} ? 'active'">
-                <a class="page-link"
-                   th:href="@{/(page=${page})}"
-                   th:text="${page + 1}"
-                   th:aria-label="'Страница ' + ${page + 1}"
-                   lang="ru"></a>
-            </li>
-            <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
-                <a class="page-link"
-                   th:href="@{/(page=${currentPage + 1})}"
-                   th:aria-label="'Следующая страница'"
-                   lang="ru">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
+<!-- Быстрые действия -->
+<div class="quick-actions">
+    <a th:href="@{/employee/add}" class="quick-action-btn btn btn-primary mb-2" aria-label="Добавить сотрудника">
+        <i class="bi bi-plus-circle"></i>
+    </a>
+    <button class="quick-action-btn btn btn-success" id="scrollToTop" title="Наверх">
+        <i class="bi bi-arrow-up"></i>
+    </button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script>
+    // Инициализация Select2 для множественного выбора
+    $(document).ready(function() {
+        $('#departmentFilter').select2({
+            placeholder: "Выберите отделы",
+            allowClear: true,
+            width: '100%'
+        });
+
+        $('#positionFilter').select2({
+            placeholder: "Выберите должности",
+            allowClear: true,
+            width: '100%'
+        });
+
+        $('#skill').select2({
+            placeholder: "Выберите навыки",
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Функция для обновления списка навыков при изменении категории
+        window.updateSkills = function() {
+            const category = $('#category').val();
+            const skillSelect = $('#skill');
+
+            // Очищаем текущие опции
+            skillSelect.empty().append('<option value="">Все навыки</option>');
+
+            if (category) {
+                // Здесь должен быть AJAX-запрос для получения навыков по категории
+                // Пример:
+                /*
+                $.get('/api/skills', { category: category }, function(data) {
+                    data.forEach(function(skill) {
+                        skillSelect.append(new Option(skill.name, skill.id));
+                    });
+                });
+                */
+
+                // Временная заглушка для демонстрации
+                const demoSkills = {
+                    'Программирование': ['Java', 'Python', 'JavaScript', 'C#'],
+                    'Дизайн': ['Photoshop', 'Illustrator', 'Figma', 'UI/UX'],
+                    'Менеджмент': ['Управление проектами', 'Scrum', 'Agile', 'Канбан']
+                };
+
+                if (demoSkills[category]) {
+                    demoSkills[category].forEach(function(skill) {
+                        skillSelect.append(new Option(skill, skill));
+                    });
+                }
+            }
+        };
+
+        // Переключение темы
+        const themeSwitcher = document.getElementById('themeSwitcher');
+        const body = document.body;
+
+        themeSwitcher.addEventListener('click', function() {
+            body.classList.toggle('light-theme');
+
+            if (body.classList.contains('light-theme')) {
+                themeSwitcher.innerHTML = '<i class="bi bi-sun-fill"></i>';
+                localStorage.setItem('theme', 'light');
+            } else {
+                themeSwitcher.innerHTML = '<i class="bi bi-moon-fill"></i>';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // Проверяем сохраненную тему
+        if (localStorage.getItem('theme') === 'light') {
+            body.classList.add('light-theme');
+            themeSwitcher.innerHTML = '<i class="bi bi-sun-fill"></i>';
+        }
+
+        // Кнопка "Наверх"
+        document.getElementById('scrollToTop').addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Переключение вида (карточки/таблица)
+        document.querySelectorAll('.view-switcher button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelector('.view-switcher .active').classList.remove('active');
+                this.classList.add('active');
+
+                const employeesContainer = document.getElementById('employeesContainer');
+
+                if (this.dataset.view === 'table') {
+                    // Переключение на табличное представление
+                    employeesContainer.classList.remove('row-cols-1', 'row-cols-md-2', 'row-cols-lg-3', 'g-4');
+                    employeesContainer.classList.add('table-view');
+
+                    // Здесь можно добавить дополнительную логику для табличного вида
+                    console.log('Переключение на табличное представление');
+                } else {
+                    // Переключение на карточки
+                    employeesContainer.classList.add('row-cols-1', 'row-cols-md-2', 'row-cols-lg-3', 'g-4');
+                    employeesContainer.classList.remove('table-view');
+                    console.log('Переключение на карточки');
+                }
+            });
+        });
+
+        // Фильтрация сотрудников
+        document.getElementById('applyFilters').addEventListener('click', function() {
+            const departments = $('#departmentFilter').val() || [];
+            const positions = $('#positionFilter').val() || [];
+            const status = $('#statusFilter').val();
+
+            // Собираем параметры фильтрации
+            const params = new URLSearchParams();
+
+            if (departments.length > 0) {
+                departments.forEach(dept => params.append('department', dept));
+            }
+
+            if (positions.length > 0) {
+                positions.forEach(pos => params.append('position', pos));
+            }
+
+            if (status) {
+                params.append('status', status);
+            }
+
+            // Перенаправляем с параметрами фильтрации
+            window.location.href = '/?' + params.toString();
+        });
+
+        // Сортировка сотрудников
+        document.querySelectorAll('[data-sort]').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sort = this.dataset.sort;
+
+                // Перенаправляем с параметром сортировки
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', sort);
+                window.location.href = url.toString();
+            });
+        });
+
+        // Drag and drop для карточек сотрудников
+        new Sortable(document.getElementById('employeesContainer'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                console.log('Порядок карточек изменен');
+                // Здесь можно добавить сохранение нового порядка
+            }
+        });
+    });
+</script>
 </body>
 </html>

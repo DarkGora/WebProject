@@ -40,16 +40,20 @@ public class EmployeeController {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
             List<Employee> employees = employeeService.findAll(page * pageSize, pageSize);
             long totalEmployees = employeeService.count();
+            long activeEmployees = employees.stream().filter(Employee::isActive).count();
+
             int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
 
             model.addAttribute("employees", employees);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
+            model.addAttribute("totalEmployees", totalEmployees);
+            model.addAttribute("activeEmployees", activeEmployees);
         } catch (IllegalArgumentException e) {
             log.error("Некорректные параметры для страницы {}: {}", page, e.getMessage());
             model.addAttribute("error", "Некорректные параметры");
         } catch (Exception e) {
-            log.error("Ошибка при загрузке сотрудников для страницы {}: {}", page, e.getMessage());
+            log.error("Ошибка при загрузке сотрудников для страницы {}: {}", page, e.getMessage(), e);
             model.addAttribute("error", "Ошибка при загрузке списка сотрудников");
         }
         return "employees";

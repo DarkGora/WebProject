@@ -38,6 +38,17 @@ public class Employee {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "active", nullable = false)
+    private boolean active = true; // По умолчанию сотрудник активен
+
+    @Size(max = 255, message = "Должность не должна превышать 255 символов")
+    @Column(name = "position")
+    private String position; // Новое поле для должности
+
+    @Size(max = 255, message = "Отдел не должен превышать 255 символов")
+    @Column(name = "department")
+    private String department;
+
     @NotBlank(message = "Email не может быть пустым")
     @Email(message = "Некорректный формат email")
     @Column(name = "email", nullable = false, unique = true)
@@ -75,6 +86,8 @@ public class Employee {
     @Column(name = "skill")
     @Convert(converter = SkillsConverter.class)
     private Set<Skills> skills = new HashSet<>();
+
+
 
     @Valid
     @Builder.Default

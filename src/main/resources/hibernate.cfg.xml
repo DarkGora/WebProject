@@ -5,7 +5,6 @@
 
 <hibernate-configuration>
   <session-factory>
-    <!-- Сначала все property элементы -->
     <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
     <property name="hibernate.connection.url">jdbc:postgresql://localhost:5444/db</property>
     <property name="hibernate.connection.username">user</property>
@@ -21,7 +20,6 @@
     <property name="hibernate.order_updates">true</property>
     <property name="hibernate.cache.use_second_level_cache">false</property>
     <property name="hibernate.cache.use_query_cache">false</property>
-    <!-- Настройки Hibernate -->
     <property name="hibernate.connection.autocommit">false</property>
     <!-- Маппинг сущностей -->
     <mapping class="org.example.model.Employee"/>
