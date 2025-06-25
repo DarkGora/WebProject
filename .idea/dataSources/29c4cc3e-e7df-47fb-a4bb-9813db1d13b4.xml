@@ -3,9 +3,17 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.53">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
+      <Grants>1||-9223372036854775808|c|G
+1||10|c|G
+1||10|C|G
+1||10|T|G
+4||-9223372036854775808|c|G
+4||10|c|G
+4||10|C|G
+4||10|T|G</Grants>
+      <IntrospectionStateNumber>1534</IntrospectionStateNumber>
       <ServerVersion>15.12</ServerVersion>
-      <StartupTime>1749723585</StartupTime>
+      <StartupTime>1750072897</StartupTime>
       <TimeZones>true ACDT
 true ACSST
 false ACST
@@ -1398,7 +1406,7 @@ true posixrules
 13209||10|C|G
 13209||-9223372036854775808|U|G
 13209||10|U|G</Grants>
-      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
+      <IntrospectionStateNumber>1534</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>user</OwnerName>
     </database>
@@ -4815,8 +4823,8 @@ true posixrules
     </schema>
     <schema id="262" parent="2" name="public">
       <Current>1</Current>
-      <IntrospectionStateNumber>1514</IntrospectionStateNumber>
-      <LastIntrospectionLocalTimestamp>2025-06-12.11:34:23</LastIntrospectionLocalTimestamp>
+      <IntrospectionStateNumber>1534</IntrospectionStateNumber>
+      <LastIntrospectionLocalTimestamp>2025-06-16.11:32:45</LastIntrospectionLocalTimestamp>
       <ObjectId>16705</ObjectId>
       <StateNumber>928</StateNumber>
       <OwnerName>user</OwnerName>
@@ -4859,7 +4867,7 @@ true posixrules
     </table>
     <table id="268" parent="262" name="employees">
       <ObjectId>49761</ObjectId>
-      <StateNumber>1438</StateNumber>
+      <StateNumber>1531</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>user</OwnerName>
     </table>
@@ -5075,7 +5083,27 @@ default</CollationNames>
       <StoredType>timestamp|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <index id="298" parent="268" name="employees_pkey">
+    <column id="298" parent="268" name="active">
+      <DefaultExpression>true</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>11</Position>
+      <StateNumber>1527</StateNumber>
+      <StoredType>boolean|0s</StoredType>
+      <TypeId>16</TypeId>
+    </column>
+    <column id="299" parent="268" name="position">
+      <Position>12</Position>
+      <StateNumber>1529</StateNumber>
+      <StoredType>varchar(255)|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="300" parent="268" name="department">
+      <Position>13</Position>
+      <StateNumber>1531</StateNumber>
+      <StoredType>varchar(255)|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <index id="301" parent="268" name="employees_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49768</ObjectId>
@@ -5084,7 +5112,7 @@ default</CollationNames>
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <index id="299" parent="268" name="employees_email_key">
+    <index id="302" parent="268" name="employees_email_key">
       <ColNames>email</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49770</ObjectId>
@@ -5095,7 +5123,7 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <index id="300" parent="268" name="idx_employees_name">
+    <index id="303" parent="268" name="idx_employees_name">
       <ColNames>name</ColNames>
       <ObjectId>49773</ObjectId>
       <StateNumber>1437</StateNumber>
@@ -5104,7 +5132,7 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <index id="301" parent="268" name="idx_employees_email">
+    <index id="304" parent="268" name="idx_employees_email">
       <ColNames>email</ColNames>
       <ObjectId>49772</ObjectId>
       <StateNumber>1436</StateNumber>
@@ -5113,26 +5141,26 @@ default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="302" parent="268" name="employees_pkey">
+    <key id="305" parent="268" name="employees_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49769</ObjectId>
       <Primary>1</Primary>
       <StateNumber>1435</StateNumber>
       <UnderlyingIndexId>49768</UnderlyingIndexId>
     </key>
-    <key id="303" parent="268" name="employees_email_key">
+    <key id="306" parent="268" name="employees_email_key">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49771</ObjectId>
       <StateNumber>1435</StateNumber>
       <UnderlyingIndexId>49770</UnderlyingIndexId>
     </key>
-    <check id="304" parent="269" name="reviews_rating_check">
+    <check id="307" parent="269" name="reviews_rating_check">
       <ColNames>rating</ColNames>
       <ObjectId>49823</ObjectId>
       <Predicate>(rating &gt;= 1) AND (rating &lt;= 5)</Predicate>
       <StateNumber>1511</StateNumber>
     </check>
-    <column id="305" parent="269" name="id">
+    <column id="308" parent="269" name="id">
       <DefaultExpression>nextval(&apos;reviews_id_seq&apos;::regclass)</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
@@ -5141,34 +5169,34 @@ default</CollationNames>
       <SequenceId>49817</SequenceId>
       <TypeId>20</TypeId>
     </column>
-    <column id="306" parent="269" name="employee_id">
+    <column id="309" parent="269" name="employee_id">
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1511</StateNumber>
       <StoredType>bigint|0s</StoredType>
       <TypeId>20</TypeId>
     </column>
-    <column id="307" parent="269" name="rating">
+    <column id="310" parent="269" name="rating">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>1511</StateNumber>
       <StoredType>integer|0s</StoredType>
       <TypeId>23</TypeId>
     </column>
-    <column id="308" parent="269" name="comment">
+    <column id="311" parent="269" name="comment">
       <Position>4</Position>
       <StateNumber>1511</StateNumber>
       <StoredType>text|0s</StoredType>
       <TypeId>25</TypeId>
     </column>
-    <column id="309" parent="269" name="created_at">
+    <column id="312" parent="269" name="created_at">
       <DefaultExpression>CURRENT_TIMESTAMP</DefaultExpression>
       <Position>5</Position>
       <StateNumber>1511</StateNumber>
       <StoredType>timestamp|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <foreign-key id="310" parent="269" name="reviews_employee_id_fkey">
+    <foreign-key id="313" parent="269" name="reviews_employee_id_fkey">
       <ColNames>employee_id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49828</ObjectId>
@@ -5177,7 +5205,7 @@ default</CollationNames>
       <RefKeyColPositions>1</RefKeyColPositions>
       <RefTableId>49761</RefTableId>
     </foreign-key>
-    <index id="311" parent="269" name="reviews_pkey">
+    <index id="314" parent="269" name="reviews_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49826</ObjectId>
@@ -5186,13 +5214,13 @@ default</CollationNames>
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <index id="312" parent="269" name="idx_reviews_employee_id">
+    <index id="315" parent="269" name="idx_reviews_employee_id">
       <ColNames>employee_id</ColNames>
       <ObjectId>49833</ObjectId>
       <StateNumber>1512</StateNumber>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="313" parent="269" name="reviews_pkey">
+    <key id="316" parent="269" name="reviews_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>49827</ObjectId>
       <Primary>1</Primary>
