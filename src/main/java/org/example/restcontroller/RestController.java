@@ -1,5 +1,6 @@
-package org.example.controller;
+package org.example.restcontroller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,7 @@ import java.util.UUID;
 
 @Slf4j
 @org.springframework.web.bind.annotation.RestController
-@RequestMapping("/api/employees")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class RestController {
     private final EmployeeService employeeService;
@@ -209,8 +210,9 @@ public class RestController {
     }
 
     @GetMapping("/hello")
-    public String hello() {
-        return "Hi!";
+    @Operation(summary = "Получить приветственное сообщение", description = "Возвращает простое приветственное сообщение")
+    public String sayHello() {
+        return "Привет, мир!";
     }
 
     @GetMapping("/names")
