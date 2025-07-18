@@ -64,14 +64,14 @@ ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO employee_skills (employee_id, skill)
 VALUES
-    (7, 'JAVA'),
-    (8, 'SPRING'),
-    (7, 'TESTING')
+    (1, 'JAVA'),
+    (2, 'SPRING'),
+    (1, 'TESTING')
 ON CONFLICT (employee_id, skill) DO NOTHING;
 
 INSERT INTO educations (year_start, year_end, university, degree, employee_id)
 VALUES
-    (2022, 2023, 'Университет им. Лермонтова', 'Бакалавр', 7),
-    (2022, 2023, 'Университет им. Пушкина', 'Магистр', 8),
-    (2023, 2024, 'Университет им. Лермонтова', 'Специалист', 8)
+    (2022, 2023, 'Университет им. Лермонтова', 'Бакалавр', 1),
+    (2022, 2023, 'Университет им. Пушкина', 'Магистр', 1),
+    (2023, 2024, 'Университет им. Лермонтова', 'Специалист', 2)
 ON CONFLICT (id) DO NOTHING;

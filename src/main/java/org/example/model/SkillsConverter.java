@@ -11,18 +11,21 @@ public class SkillsConverter implements AttributeConverter<Skills, String> {
 
     @Override
     public String convertToDatabaseColumn(Skills skill) {
-        return skill == null ? null : skill.name();
+        if (skill == null) {
+            return null;
+        }
+        return skill.name();
     }
 
     @Override
     public Skills convertToEntityAttribute(String dbData) {
-        if (dbData == null) {
+        if (dbData == null || dbData.isBlank()) {
             return null;
         }
         try {
             return Skills.valueOf(dbData);
         } catch (IllegalArgumentException e) {
-            log.warn("Некорректное значение навыка в базе данных: {}. Возвращается null.", dbData);
+            log.warn("Unknown skill value in database: '{}'", dbData);
             return null;
         }
     }

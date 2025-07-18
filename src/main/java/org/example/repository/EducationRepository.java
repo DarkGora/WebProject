@@ -14,19 +14,12 @@ import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Repository;
 
-/**
- * Репозиторий для управления сущностью Education, связанной с сотрудниками.
- */
+
 @Slf4j
 @Repository
 public class EducationRepository {
     private final SessionFactory sessionFactory;
 
-    /**
-     * Конструктор, инициализирующий SessionFactory из hibernate.cfg.xml.
-     *
-     * @throws RuntimeException если не удалось создать SessionFactory
-     */
     public EducationRepository() {
         try {
             this.sessionFactory = new Configuration()
@@ -39,12 +32,6 @@ public class EducationRepository {
         }
     }
 
-    /**
-     * Получение сессии Hibernate.
-     *
-     * @return открытая сессия
-     * @throws IllegalStateException если сессия недоступна
-     */
     private Session getSession() {
         try {
             return sessionFactory.openSession();
@@ -54,12 +41,6 @@ public class EducationRepository {
         }
     }
 
-    /**
-     * Поиск всех записей об образовании для сотрудника по его ID.
-     *
-     * @param employeeId идентификатор сотрудника
-     * @return список записей об образовании или пустой список, если ничего не найдено или employeeId null
-     */
     public List<Education> findByEmployeeId(@NotNull Long employeeId) {
         if (employeeId == null) {
             log.warn("Попытка найти образование с null ID сотрудника");
@@ -83,13 +64,7 @@ public class EducationRepository {
         }
     }
 
-    /**
-     * Сохранение записи об образовании.
-     *
-     * @param education объект образования
-     * @throws IllegalArgumentException если education или его employee null
-     * @throws RuntimeException если произошла ошибка при сохранении
-     */
+
     public void save(@NotNull Education education) {
         Objects.requireNonNull(education, "Образование не может быть null");
         Objects.requireNonNull(education.getEmployee(), "Сотрудник в образовании не может быть null");
@@ -115,13 +90,7 @@ public class EducationRepository {
         }
     }
 
-    /**
-     * Удаление всех записей об образовании для сотрудника по его ID.
-     *
-     * @param employeeId идентификатор сотрудника
-     * @throws IllegalArgumentException если employeeId null
-     * @throws RuntimeException если произошла ошибка при удалении
-     */
+
     public void deleteByEmployeeId(@NotNull Long employeeId) {
         Objects.requireNonNull(employeeId, "ID сотрудника не может быть null");
         log.info("Удаление образования для сотрудника ID: {}", employeeId);
@@ -147,9 +116,6 @@ public class EducationRepository {
         }
     }
 
-    /**
-     * Закрытие SessionFactory при уничтожении бина.
-     */
     @PreDestroy
     public void close() {
         if (sessionFactory != null && !sessionFactory.isClosed()) {

@@ -45,6 +45,10 @@ public class Review {
         createdAt = LocalDateTime.now();
     }
 
+    public Review(Long employeeId) {
+        this.employeeId = employeeId;
+    }
+
     @Override
     public String toString() {
         return "Review{" +

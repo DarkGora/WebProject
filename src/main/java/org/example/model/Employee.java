@@ -82,12 +82,10 @@ public class Employee {
     private String telegram;
 
     @ElementCollection
-    @CollectionTable(name = "employee_skills", joinColumns = @JoinColumn(name = "employee_id"))
+    @CollectionTable(name = "employee_skills",
+            joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
-    @Convert(converter = SkillsConverter.class)
-    private Set<Skills> skills = new HashSet<>();
-
-
+    private Set<String> skills = new HashSet<>();
 
     @Valid
     @Builder.Default
