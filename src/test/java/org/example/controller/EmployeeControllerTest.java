@@ -6,19 +6,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @WebMvcTest(EmployeeController.class)
 class EmployeeControllerTest {
 
@@ -30,7 +28,7 @@ class EmployeeControllerTest {
     private EmployeeService employeeService;
 
     @Test
-    void listEmployees_ShouldReturnEmployeesPage() throws Exception {
+    void listEmployees() throws Exception {
         Employee mockEmployee = Employee.builder()
                 .id(1L)
                 .name("Иван")
@@ -44,10 +42,43 @@ class EmployeeControllerTest {
                 .andExpect(view().name("employees"))
                 .andExpect(model().attributeExists("employees"));
     }
+
     @Test
     void saveEmployee() throws Exception {
         mockMvc.perform(multipart("/employee/save"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("employee-edit"));
+    }
+
+    @Test
+    void save_Employee() throws Exception {
+        Employee mockEmployee = Employee.builder()
+                .id(1L)
+                .name("Иван")
+                .active(true)
+                .build();
+        when(employeeService.save(any(Employee.class), anyString())).thenReturn(mockEmployee);
+
+        mockMvc.perform(post("/employee/save")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("name", "Иван")
+                        .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employee-edit")); // или другое ожидаемое представление
+    }
+    @Test
+    void listEmployee_1() throws Exception {
+        Employee employee1 = Employee.builder().id(1L).name("Иван").active(true).build();
+        Employee employee2 = Employee.builder().id(2L).name("Мария").active(false).build();
+
+        when(employeeService.findAll(anyInt(), anyInt())).thenReturn(List.of(employee1,employee2));
+        when(employeeService.count()).thenReturn(2L);
+
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("employees"))
+                .andExpect(view().name("employees"))
+                .andExpect(model().attribute("employees", hasSize(2)))
+                .andExpect(model().attribute("totalEmployees", 2l));
     }
 }
