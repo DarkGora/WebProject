@@ -1,5 +1,6 @@
 package org.example.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -85,10 +86,12 @@ public class Employee {
     @CollectionTable(name = "employee_skills",
             joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
+    @JsonIgnore
     private Set<String> skills = new HashSet<>();
 
     @Valid
     @Builder.Default
+    @JsonIgnore
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Education> educations = new ArrayList<>();
 
