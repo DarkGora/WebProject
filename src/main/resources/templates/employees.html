@@ -9,9 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/styles/profile.css}">
-    <!-- Подключение jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -147,11 +145,6 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .department-filter {
-            position: sticky;
-            top: 20px;
-        }
-
         .quick-actions {
             position: fixed;
             bottom: 30px;
@@ -181,9 +174,8 @@
         }
 
         @media (max-width: 992px) {
-            .department-filter {
-                position: static;
-                margin-bottom: 2rem;
+            .container-fluid {
+                padding: 0 1rem;
             }
 
             .quick-actions {
@@ -216,6 +208,33 @@
 
         .light-theme .stats-card {
             background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Стили для Select2 в темной теме */
+        .select2-container--default .select2-selection--multiple {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+        }
+
+        .light-theme .select2-container--default .select2-selection--multiple {
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            color: #212529;
+        }
+
+        /* Стили для табличного представления */
+        .table-view {
+            display: table;
+            width: 100%;
+        }
+
+        .table-view .employee-card {
+            display: table-row;
+        }
+
+        .sortable-ghost {
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -269,39 +288,40 @@
                 </div>
             </div>
 
-            <div class="card department-filter animate__animated animate__fadeIn">
-                <div class="card-header bg-transparent">
-                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Фильтры</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Отдел</label>
-                        <select class="form-select mb-3" id="departmentFilter" multiple>
-                            <option value="">Все отделы</option>
-                            <option th:each="dept : ${departments}"
-                                    th:value="${dept}"
-                                    th:text="${dept}"></option>
-                        </select>
+            <!-- Дополнительные фильтры -->
+            <div class="search-container">
+                <h6 class="mb-3">Фильтры</h6>
 
-                        <label class="form-label">Должность</label>
-                        <select class="form-select mb-3" id="positionFilter" multiple>
-                            <option value="">Все должности</option>
-                            <option th:each="pos : ${positions}"
-                                    th:value="${pos}"
-                                    th:text="${pos}"></option>
-                        </select>
-
-                        <label class="form-label">Статус</label>
-                        <select class="form-select" id="statusFilter">
-                            <option value="">Все</option>
-                            <option value="active">Активные</option>
-                            <option value="inactive">Неактивные</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary w-100 mt-2" id="applyFilters">
-                        <i class="bi bi-funnel-fill me-1"></i>Применить
-                    </button>
+                <div class="mb-3">
+                    <label for="departmentFilter" class="form-label">Отдел:</label>
+                    <select id="departmentFilter" class="form-select" multiple>
+                        <option th:each="dept : ${departments}"
+                                th:value="${dept}"
+                                th:text="${dept}"></option>
+                    </select>
                 </div>
+
+                <div class="mb-3">
+                    <label for="positionFilter" class="form-label">Должность:</label>
+                    <select id="positionFilter" class="form-select" multiple>
+                        <option th:each="pos : ${positions}"
+                                th:value="${pos}"
+                                th:text="${pos}"></option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="statusFilter" class="form-label">Статус:</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="">Все</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                    </select>
+                </div>
+
+                <button id="applyFilters" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-2"></i>Применить фильтры
+                </button>
             </div>
         </div>
 
@@ -327,7 +347,10 @@
                         <label for="skill" class="form-label">Навык:</label>
                         <select id="skill" name="skill" class="form-select">
                             <option value="">Все навыки</option>
-                            <!-- Опции будут добавлены через JavaScript -->
+                            <option th:each="skill : ${skills}"
+                                    th:value="${skill}"
+                                    th:text="${skill}"
+                                    th:selected="${param.skill == skill}"></option>
                         </select>
                     </div>
                     <div class="col-md-12 d-flex align-items-end">
@@ -354,17 +377,15 @@
                     </button>
                 </div>
 
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle"
-                            type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                         <i class="bi bi-sort-down"></i> Сортировка
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                        <li><a class="dropdown-item" href="#" data-sort="name_asc">По имени (А-Я)</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="name_desc">По имени (Я-А)</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" data-sort="date_asc">По дате добавления (старые)</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="date_desc">По дате добавления (новые)</a></li>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-sort="name">По имени</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="department">По отделу</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="position">По должности</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="date">По дате добавления</a></li>
                     </ul>
                 </div>
             </div>
@@ -386,34 +407,39 @@
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="#" th:href="@{'/employee/' + ${employee.id}}">
+                                    <li><a class="dropdown-item" th:href="@{'/employee/' + ${employee.id}}">
                                         <i class="bi bi-eye me-2"></i>Просмотр
                                     </a></li>
-                                    <li><a class="dropdown-item" href="#" th:href="@{'/employee/edit/' + ${employee.id}}">
+                                    <li><a class="dropdown-item" th:href="@{'/employee/edit/' + ${employee.id}}">
                                         <i class="bi bi-pencil me-2"></i>Редактировать
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#">
-                                        <i class="bi bi-trash me-2"></i>Удалить
-                                    </a></li>
+                                    <li>
+                                        <form th:action="@{'/employee/delete/' + ${employee.id}}" method="post" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Удалить сотрудника?')">
+                                                <i class="bi bi-trash me-2"></i>Удалить
+                                            </button>
+                                        </form>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
-                                <img th:src="@{${employee.photoPath ?: '/images/default.jpg'}}"
+                                <img th:src="@{${employee.photoPath != null ? employee.photoPath : '/images/default.jpg'}}"
                                      class="employee-photo rounded-circle me-3"
-                                     th:alt="'Фото ' + ${employee.name ?: 'Сотрудник'}"/>
+                                     th:alt="${employee.name} ?: 'Сотрудник'"
+                                     onerror="this.src='/images/default.jpg'"/>
                                 <div>
                                     <h5 class="card-title mb-0" th:text="${employee.name} ?: 'Имя не указано'"></h5>
-                                    <small class="text-muted" th:text="${employee.position ?: 'Должность не указана'}"></small>
+                                    <small class="text-muted" th:text="${employee.position} ?: 'Должность не указана'"></small>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <div class="d-flex align-items-center mb-1">
                                     <i class="bi bi-envelope me-2 text-muted"></i>
-                                    <span th:text="${employee.email ?: 'Не указан'}" class="text-truncate"></span>
+                                    <span th:text="${employee.email} ?: 'Не указан'" class="text-truncate"></span>
                                 </div>
                                 <div class="d-flex align-items-center mb-1" th:if="${employee.phoneNumber}">
                                     <i class="bi bi-telephone me-2 text-muted"></i>
@@ -421,7 +447,7 @@
                                 </div>
                                 <div class="d-flex align-items-center">
                                     <i class="bi bi-building me-2 text-muted"></i>
-                                    <span th:text="${employee.department ?: 'Отдел не указан'}"></span>
+                                    <span th:text="${employee.department} ?: 'Отдел не указан'"></span>
                                 </div>
                             </div>
 
@@ -439,7 +465,7 @@
                         <div class="card-footer bg-transparent border-top-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
-                                    Добавлен: <span th:text="${employee.createdAt}"></span>
+                                    Добавлен: <span th:text="${#temporals.format(employee.createdAt, 'dd.MM.yyyy')}"></span>
                                 </small>
                                 <div class="btn-actions">
                                     <a th:href="@{'tel:' + ${employee.phoneNumber}}" class="btn btn-sm btn-success" th:if="${employee.phoneNumber}" title="Позвонить">
@@ -463,20 +489,21 @@
                 </div>
             </div>
 
+            <!-- Пагинация -->
             <nav th:if="${totalPages > 1}" aria-label="Пагинация" class="mt-4">
                 <ul class="pagination justify-content-center">
                     <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                        <a class="page-link" th:href="@{/(page=${currentPage - 1})}">
+                        <a class="page-link" th:href="@{'/?page=' + (currentPage - 1)}">
                             <i class="bi bi-chevron-left"></i>
                         </a>
                     </li>
-                    <li th:each="page : ${#numbers.sequence(0, totalPages - 1)}"
+                    <li th:each="page : ${#numbers.sequence(1, totalPages)}"
                         class="page-item"
-                        th:classappend="${page == currentPage} ? 'active'">
-                        <a class="page-link" th:href="@{/(page=${page})}" th:text="${page + 1}"></a>
+                        th:classappend="${page == currentPage + 1} ? 'active'">
+                        <a class="page-link" th:href="@{'/?page=' + (page - 1)}" th:text="${page}"></a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{/(page=${currentPage + 1})}">
+                        <a class="page-link" th:href="@{'/?page=' + (currentPage + 1)}">
                             <i class="bi bi-chevron-right"></i>
                         </a>
                     </li>
@@ -496,68 +523,40 @@
     </button>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script>
-    // Инициализация Select2 для множественного выбора
-    $(document).ready(function() {
-        $('#departmentFilter').select2({
-            placeholder: "Выберите отделы",
+    // Демо-навыки для примера
+    const demoSkills = {
+        "Программирование": ["Java", "Python", "JavaScript", "C++", "C#"],
+        "Дизайн": ["UI/UX", "Figma", "Adobe Photoshop", "Illustrator"],
+        "Базы данных": ["SQL", "MySQL", "PostgreSQL", "MongoDB"],
+        "DevOps": ["Docker", "Kubernetes", "CI/CD", "AWS"]
+    };
+
+    // Инициализация после загрузки DOM
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализация Select2
+        $('#departmentFilter, #positionFilter, #skill').select2({
+            placeholder: "Выберите значение",
             allowClear: true,
             width: '100%'
         });
-
-        $('#positionFilter').select2({
-            placeholder: "Выберите должности",
-            allowClear: true,
-            width: '100%'
-        });
-
-        $('#skill').select2({
-            placeholder: "Выберите навыки",
-            allowClear: true,
-            width: '100%'
-        });
-
-        // Функция для обновления списка навыков при изменении категории
-        window.updateSkills = function() {
-            const category = $('#category').val();
-            const skillSelect = $('#skill');
-
-            // Очищаем текущие опции
-            skillSelect.empty().append('<option value="">Все навыки</option>');
-
-            if (category) {
-                // Здесь должен быть AJAX-запрос для получения навыков по категории
-                // Пример:
-                /*
-                $.get('/api/skills', { category: category }, function(data) {
-                    data.forEach(function(skill) {
-                        skillSelect.append(new Option(skill.name, skill.id));
-                    });
-                });
-                */
-
-                // Временная заглушка для демонстрации
-                const demoSkills = {
-                    'Программирование': ['Java', 'Python', 'JavaScript', 'C#'],
-                    'Дизайн': ['Photoshop', 'Illustrator', 'Figma', 'UI/UX'],
-                    'Менеджмент': ['Управление проектами', 'Scrum', 'Agile', 'Канбан']
-                };
-
-                if (demoSkills[category]) {
-                    demoSkills[category].forEach(function(skill) {
-                        skillSelect.append(new Option(skill, skill));
-                    });
-                }
-            }
-        };
 
         // Переключение темы
         const themeSwitcher = document.getElementById('themeSwitcher');
         const body = document.body;
+
+        // Проверяем сохраненную тему
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme === 'light') {
+            body.classList.add('light-theme');
+            themeSwitcher.innerHTML = '<i class="bi bi-sun-fill"></i>';
+        } else {
+            themeSwitcher.innerHTML = '<i class="bi bi-moon-fill"></i>';
+        }
 
         themeSwitcher.addEventListener('click', function() {
             body.classList.toggle('light-theme');
@@ -570,12 +569,6 @@
                 localStorage.setItem('theme', 'dark');
             }
         });
-
-        // Проверяем сохраненную тему
-        if (localStorage.getItem('theme') === 'light') {
-            body.classList.add('light-theme');
-            themeSwitcher.innerHTML = '<i class="bi bi-sun-fill"></i>';
-        }
 
         // Кнопка "Наверх"
         document.getElementById('scrollToTop').addEventListener('click', function() {
@@ -597,8 +590,6 @@
                     // Переключение на табличное представление
                     employeesContainer.classList.remove('row-cols-1', 'row-cols-md-2', 'row-cols-lg-3', 'g-4');
                     employeesContainer.classList.add('table-view');
-
-                    // Здесь можно добавить дополнительную логику для табличного вида
                     console.log('Переключение на табличное представление');
                 } else {
                     // Переключение на карточки
@@ -627,7 +618,7 @@
             }
 
             if (status) {
-                params.append('status', status);
+                params.append('active', status === 'active' ? 'true' : 'false');
             }
 
             // Перенаправляем с параметрами фильтрации
@@ -653,10 +644,27 @@
             ghostClass: 'sortable-ghost',
             onEnd: function() {
                 console.log('Порядок карточек изменен');
-                // Здесь можно добавить сохранение нового порядка
             }
         });
     });
+
+    // Функция для обновления списка навыков при изменении категории
+    function updateSkills() {
+        const category = $('#category').val();
+        const skillSelect = $('#skill');
+
+        // Очищаем текущие опции
+        skillSelect.empty().append('<option value="">Все навыки</option>');
+
+        if (category && demoSkills[category]) {
+            demoSkills[category].forEach(function(skill) {
+                skillSelect.append(new Option(skill, skill));
+            });
+        }
+
+        // Перезапускаем Select2
+        skillSelect.trigger('change');
+    }
 </script>
 </body>
 </html>

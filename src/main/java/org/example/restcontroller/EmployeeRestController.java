@@ -1,12 +1,13 @@
 package org.example.restcontroller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.model.*;
+import org.example.model.Employee;
+import org.example.model.Education;
+import org.example.model.Review;
 import org.example.service.EmployeeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,14 +31,12 @@ import java.util.UUID;
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
 @Tag(name = "Employee Management", description = "API для управления сотрудниками")
-class EmployeeRestController {
+public class EmployeeRestController {
     private final EmployeeService employeeService;
 
-    private static final String UPLOAD_DIR = "src/main/resources/static/images/";
-    private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp");
+    private static final String UPLOAD_DIR = "resources/static/images/";
+    private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-    // === Employee CRUD ===
 
     @Operation(summary = "Получить список сотрудников (с пагинацией и фильтрами)")
     @GetMapping
@@ -56,8 +55,8 @@ class EmployeeRestController {
                     .header("X-Total-Count", String.valueOf(employees.getTotalElements()))
                     .body(employees.getContent());
         } catch (Exception e) {
-            log.error("Ошибка при загрузке списка сотрудников: {}", e.getMessage());
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при загрузке списка сотрудников: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при загрузке списка сотрудников");
         }
     }
 
@@ -66,17 +65,28 @@ class EmployeeRestController {
     public ResponseEntity<?> getEmployee(@PathVariable Long id) {
         try {
             Employee employee = employeeService.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник с ID " + id + " не найден"));
 
-            if (employee.getPhotoPath() != null && !Files.exists(Paths.get(UPLOAD_DIR + employee.getPhotoPath()))) {
-                employee.setPhotoPath("/images/default.jpg");
+            // Проверка существования файла фото
+            if (employee.getPhotoPath() != null && !employee.getPhotoPath().isEmpty()) {
+                String cleanPhotoPath = employee.getPhotoPath().replaceFirst("^/", "");
+                Path photoFullPath = Paths.get(UPLOAD_DIR, cleanPhotoPath).toAbsolutePath().normalize();
+
+                if (!Files.exists(photoFullPath)) {
+                    log.warn("Фото не найдено: {}", photoFullPath);
+                    employee.setPhotoPath("/images/default-avatar.png");
+                }
+            } else {
+                employee.setPhotoPath("/images/default-avatar.png");
             }
 
             return ResponseEntity.ok(employee);
         } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник не найден: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при получении сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при получении сотрудника");
         }
     }
 
@@ -86,13 +96,21 @@ class EmployeeRestController {
             @Valid @ModelAttribute Employee employee,
             @RequestParam(value = "photo", required = false) MultipartFile photo) {
         try {
-            String photoPath = storeFile(photo);
+            String photoPath = null;
+            if (photo != null && !photo.isEmpty()) {
+                photoPath = storeFile(photo);
+            }
             Employee savedEmployee = employeeService.save(employee, photoPath);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
-        } catch (IllegalArgumentException | IOException e) {
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка валидации при создании сотрудника: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IOException e) {
+            log.warn("Ошибка загрузки файла: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при создании сотрудника: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при создании сотрудника");
         }
     }
 
@@ -103,15 +121,21 @@ class EmployeeRestController {
             @Valid @ModelAttribute Employee employee,
             @RequestParam(value = "photo", required = false) MultipartFile photo) {
         try {
-            String photoPath = storeFile(photo);
+            String photoPath = null;
+            if (photo != null && !photo.isEmpty()) {
+                photoPath = storeFile(photo);
+            }
             Employee updatedEmployee = employeeService.update(id, employee, photoPath);
             return ResponseEntity.ok(updatedEmployee);
         } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник не найден при обновлении: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.badRequest().body("Ошибка загрузки фото");
+            log.warn("Ошибка загрузки файла при обновлении: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при обновлении сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при обновлении сотрудника");
         }
     }
 
@@ -122,9 +146,11 @@ class EmployeeRestController {
             employeeService.delete(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник не найден при удалении: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при удалении сотрудника");
         }
     }
 
@@ -136,12 +162,14 @@ class EmployeeRestController {
             @PathVariable Long id,
             @RequestParam String skill) {
         try {
-            employeeService.addSkill(id, skill);
+            employeeService.addSkill(id, skill.trim());
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при добавлении навыка: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при добавлении навыка сотруднику с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при добавлении навыка");
         }
     }
 
@@ -154,9 +182,11 @@ class EmployeeRestController {
             employeeService.removeSkill(id, skill);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
+            log.warn("Навык не найден при удалении: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при удалении навыка у сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при удалении навыка");
         }
     }
 
@@ -166,14 +196,16 @@ class EmployeeRestController {
     @PostMapping("/{id}/educations")
     public ResponseEntity<?> addEducation(
             @PathVariable Long id,
-            @RequestBody Education education) {
+            @Valid @RequestBody Education education) {
         try {
             employeeService.addEducation(id, education);
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при добавлении образования: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при добавлении образования сотруднику с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при добавлении образования");
         }
     }
 
@@ -183,39 +215,58 @@ class EmployeeRestController {
     @PostMapping("/{id}/reviews")
     public ResponseEntity<?> addReview(
             @PathVariable Long id,
-            @RequestBody Review review) {
+            @Valid @RequestBody Review review) {
         try {
+            // Устанавливаем связь с сотрудником
+            review.setEmployeeId(id);
             employeeService.saveReview(review);
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при добавлении отзыва: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Ошибка сервера");
+            log.error("Ошибка при добавлении отзыва для сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при добавлении отзыва");
         }
     }
 
     // === Utils ===
 
     private String storeFile(MultipartFile file) throws IOException {
-        if (file == null || file.isEmpty()) return null;
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
 
         validateFile(file);
 
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        Path filePath = Paths.get(UPLOAD_DIR, fileName).toAbsolutePath().normalize();
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String fileName = UUID.randomUUID() + fileExtension;
 
-        Files.createDirectories(filePath.getParent());
+        Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+        Path filePath = uploadPath.resolve(fileName);
+
+        Files.createDirectories(uploadPath);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        return "/images/" + fileName;
+        return fileName;
     }
 
     private void validateFile(MultipartFile file) {
-        if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
-            throw new IllegalArgumentException("Недопустимый формат файла");
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Файл не должен быть пустым");
         }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Недопустимый формат файла. Разрешены: " + ALLOWED_IMAGE_TYPES);
+        }
+
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("Файл слишком большой (макс. 5MB)");
+            throw new IllegalArgumentException("Файл слишком большой. Максимальный размер: " + (MAX_FILE_SIZE / (1024 * 1024)) + "MB");
         }
     }
 }

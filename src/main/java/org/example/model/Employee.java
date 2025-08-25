@@ -1,6 +1,6 @@
 package org.example.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -25,26 +25,18 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Override
-    public String toString() {
-        return "Employee{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", photoPath='" + photoPath + '\'' +
-                '}';
-    }
-
     @NotBlank(message = "Имя не может быть пустым")
     @Size(max = 255, message = "Имя не должно превышать 255 символов")
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "active", nullable = false)
-    private boolean active = true; // По умолчанию сотрудник активен
+    @Builder.Default
+    private boolean active = true;
 
     @Size(max = 255, message = "Должность не должна превышать 255 символов")
     @Column(name = "position")
-    private String position; // Новое поле для должности
+    private String position;
 
     @Size(max = 255, message = "Отдел не должен превышать 255 символов")
     @Column(name = "department")
@@ -55,7 +47,7 @@ public class Employee {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Pattern(regexp = "\\+[0-9]{10,15}", message = "Телефон должен начинаться с '+' и содержать от 10 до 15 цифр")
+    @Pattern(regexp = "^\\+[0-9]{10,15}$", message = "Телефон должен начинаться с '+' и содержать от 10 до 15 цифр")
     @Column(name = "phone_number")
     private String phoneNumber;
 
@@ -78,25 +70,44 @@ public class Employee {
     @Column(name = "resume")
     private String resume;
 
+    @Pattern(regexp = "^@[a-zA-Z0-9_]{5,32}$", message = "Telegram должен начинаться с @ и содержать от 5 до 32 символов (буквы, цифры, подчеркивания)")
     @Size(max = 255, message = "Telegram не должен превышать 255 символов")
     @Column(name = "telegram")
     private String telegram;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "employee_skills",
             joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
-    @JsonIgnore
+    @Builder.Default
     private Set<String> skills = new HashSet<>();
 
     @Valid
-    @Builder.Default
-    @JsonIgnore
+    @Builder.Default // Добавить для корректной работы @Builder
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Education> educations = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+
+    public void addSkill(String skill) {
+        this.skills.add(skill);
+    }
+
+    public void removeSkill(String skill) {
+        this.skills.remove(skill);
+    }
+
+    public void addEducation(Education education) {
+        education.setEmployee(this);
+        this.educations.add(education);
+    }
+
+    public void removeEducation(Education education) {
+        this.educations.remove(education);
+        education.setEmployee(null);
     }
 }

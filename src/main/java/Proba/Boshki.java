@@ -1,4 +1,4 @@
-package org.example.Proba;
+package Proba;
 
 import java.io.FileWriter;
 import java.io.IOException;
