@@ -1,6 +1,7 @@
 package org.example.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.example.dto.EmployeeDto;
 import org.example.mappers.EmployeeMapper;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Valid
 public class EmployeeServiceJPA {
     private final EmployeeRepositoryDto repository;
     private final EmployeeMapper mapper;
