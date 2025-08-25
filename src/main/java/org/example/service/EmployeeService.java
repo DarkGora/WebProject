@@ -24,8 +24,6 @@ public class EmployeeService {
     private final ReviewRepository reviewRepository;
     private final EmployeeRepositoryJPA employeeRepositoryJPA;
 
-    // === Основные CRUD-методы ===
-
     @Transactional(readOnly = true)
     public List<Employee> findAll(int offset, int limit) {
         if (offset < 0 || limit <= 0) {
