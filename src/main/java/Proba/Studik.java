@@ -1,4 +1,4 @@
-package org.example.Proba;
+package Proba;
 
 import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
