@@ -83,7 +83,7 @@ public class Employee {
     private Set<String> skills = new HashSet<>();
 
     @Valid
-    @Builder.Default // Добавить для корректной работы @Builder
+    @Builder.Default
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Education> educations = new ArrayList<>();
 

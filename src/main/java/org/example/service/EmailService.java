@@ -10,6 +10,7 @@ import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.example.dto.CallbackRequest;
+import org.example.dto.EmployeeDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,6 +89,31 @@ public class EmailService {
         }
     }
 
+    public void sendEmailWithAttachment(String toEmail, String subject, String text,
+                                        byte[] attachment, String fileName, String contentType)
+            throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setFrom("dima.pulik1488@gmail.com");
+            helper.setText(text);
+
+            if (attachment != null && attachment.length > 0) {
+                InputStreamSource attachmentSource = new ByteArrayResource(attachment);
+                helper.addAttachment(fileName, attachmentSource, contentType);
+            }
+
+            mailSender.send(message);
+            logger.info("Email с вложением успешно отправлен на {}", toEmail);
+
+        } catch (MessagingException e) {
+            logger.error("Ошибка при отправке email с вложением: {}", e.getMessage(), e);
+            throw new MessagingException("Ошибка отправки email с вложением", e);
+        }
+    }
     private int countAttachments(ByteArrayOutputStream... files) {
         int count = 0;
         for (ByteArrayOutputStream file : files) {
@@ -97,7 +123,6 @@ public class EmailService {
         }
         return count;
     }
-
     public ByteArrayOutputStream createWordDocument(CallbackRequest request) throws IOException {
         XWPFDocument doc = new XWPFDocument();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -109,7 +134,7 @@ public class EmailService {
             titleRun.setFontSize(16);
             titleRun.setBold(true);
             titleRun.setFontFamily("Verdana");
-            titleRun.setText(employeeService.getEmployeeById(3L).getName());
+            titleRun.setText("Заявка от: " + request.getName());
             titleRun.addBreak();
 
             XWPFParagraph infoParagraph = doc.createParagraph();
@@ -120,6 +145,14 @@ public class EmailService {
 
             infoRun.setText("Имя: " + request.getName());
             infoRun.addBreak();
+            if (request.getEmail() != null) {
+                infoRun.setText("Email: " + request.getEmail());
+                infoRun.addBreak();
+            }
+            if (request.getName() != null) {
+                infoRun.setText("Сообщение: " + request.getName());
+                infoRun.addBreak();
+            }
 
             doc.write(outputStream);
         } finally {
@@ -137,23 +170,85 @@ public class EmailService {
             Sheet sheet = workbook.createSheet("Данные о пользователях");
 
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"Имя", "Возраст", "Город"};
+            String[] headers = {"Имя", "Email", "Сообщение"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
             }
 
-            Object[][] data = {
-                    {"Иван", 25, "Брест"},
-                    {"Мария", 30, "Минск"},
-                    {"Петр", 35, "Могилев"}
+            Row dataRow = sheet.createRow(1);
+            dataRow.createCell(0).setCellValue(request.getName());
+            dataRow.createCell(1).setCellValue(request.getEmail() != null ? request.getEmail() : "");
+            dataRow.createCell(2).setCellValue(request.getName() != null ? request.getName() : "");
+
+            workbook.write(outputStream);
+        } finally {
+            workbook.close();
+        }
+
+        return outputStream;
+    }
+
+    public ByteArrayOutputStream createEmployeeWordDocument(EmployeeDto employee) throws IOException {
+        XWPFDocument doc = new XWPFDocument();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        try {
+            XWPFParagraph titleParagraph = doc.createParagraph();
+            titleParagraph.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun titleRun = titleParagraph.createRun();
+            titleRun.setFontSize(16);
+            titleRun.setBold(true);
+            titleRun.setFontFamily("Verdana");
+            titleRun.setText("Резюме: " + employee.getName());
+            titleRun.addBreak();
+
+            XWPFParagraph infoParagraph = doc.createParagraph();
+            infoParagraph.setAlignment(ParagraphAlignment.LEFT);
+            XWPFRun infoRun = infoParagraph.createRun();
+            infoRun.setFontSize(12);
+            infoRun.setFontFamily("Verdana");
+
+
+            infoRun.setText("Имя: " + employee.getName());
+            infoRun.addBreak();
+            if (employee.getEmail() != null) {
+                infoRun.setText("Email: " + employee.getEmail());
+                infoRun.addBreak();
+            }
+
+            doc.write(outputStream);
+        } finally {
+            doc.close();
+        }
+
+        return outputStream;
+    }
+
+    public ByteArrayOutputStream createEmployeeExcelReport(EmployeeDto employee) throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        try {
+            Sheet sheet = workbook.createSheet("Данные сотрудника");
+
+
+            Row headerRow = sheet.createRow(0);
+            Cell headerCell = headerRow.createCell(0);
+            headerCell.setCellValue("Данные сотрудника: " + employee.getName());
+
+
+            int rowNum = 2;
+            String[][] employeeData = {
+                    {"Имя", employee.getName()},
+                    {"Email", employee.getEmail() != null ? employee.getEmail() : ""},
+                    {"Телефон", employee.getPhone() != null ? employee.getPhone() : ""}
             };
 
-            for (int i = 0; i < data.length; i++) {
-                Row row = sheet.createRow(i + 1);
-                row.createCell(0).setCellValue((String) data[i][0]);
-                row.createCell(1).setCellValue((Integer) data[i][1]);
-                row.createCell(2).setCellValue((String) data[i][2]);
+            for (String[] data : employeeData) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(data[0]);
+                row.createCell(1).setCellValue(data[1]);
             }
 
             workbook.write(outputStream);
