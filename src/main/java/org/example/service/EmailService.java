@@ -11,6 +11,7 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.example.dto.CallbackRequest;
 import org.example.dto.EmployeeDto;
+import org.example.fileFabrica.FileFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -32,9 +34,6 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
-
-    @Autowired
-    private EmployeeServiceJPA employeeService;
 
     public void sendCallbackEmail(CallbackRequest request, ByteArrayOutputStream docFile, ByteArrayOutputStream excelFile) throws MessagingException, IOException {
         try {
@@ -114,6 +113,7 @@ public class EmailService {
             throw new MessagingException("Ошибка отправки email с вложением", e);
         }
     }
+
     private int countAttachments(ByteArrayOutputStream... files) {
         int count = 0;
         for (ByteArrayOutputStream file : files) {
@@ -123,6 +123,7 @@ public class EmailService {
         }
         return count;
     }
+
     public ByteArrayOutputStream createWordDocument(CallbackRequest request) throws IOException {
         XWPFDocument doc = new XWPFDocument();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -180,76 +181,6 @@ public class EmailService {
             dataRow.createCell(0).setCellValue(request.getName());
             dataRow.createCell(1).setCellValue(request.getEmail() != null ? request.getEmail() : "");
             dataRow.createCell(2).setCellValue(request.getName() != null ? request.getName() : "");
-
-            workbook.write(outputStream);
-        } finally {
-            workbook.close();
-        }
-
-        return outputStream;
-    }
-
-    public ByteArrayOutputStream createEmployeeWordDocument(EmployeeDto employee) throws IOException {
-        XWPFDocument doc = new XWPFDocument();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        try {
-            XWPFParagraph titleParagraph = doc.createParagraph();
-            titleParagraph.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun titleRun = titleParagraph.createRun();
-            titleRun.setFontSize(16);
-            titleRun.setBold(true);
-            titleRun.setFontFamily("Verdana");
-            titleRun.setText("Резюме: " + employee.getName());
-            titleRun.addBreak();
-
-            XWPFParagraph infoParagraph = doc.createParagraph();
-            infoParagraph.setAlignment(ParagraphAlignment.LEFT);
-            XWPFRun infoRun = infoParagraph.createRun();
-            infoRun.setFontSize(12);
-            infoRun.setFontFamily("Verdana");
-
-
-            infoRun.setText("Имя: " + employee.getName());
-            infoRun.addBreak();
-            if (employee.getEmail() != null) {
-                infoRun.setText("Email: " + employee.getEmail());
-                infoRun.addBreak();
-            }
-
-            doc.write(outputStream);
-        } finally {
-            doc.close();
-        }
-
-        return outputStream;
-    }
-
-    public ByteArrayOutputStream createEmployeeExcelReport(EmployeeDto employee) throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        try {
-            Sheet sheet = workbook.createSheet("Данные сотрудника");
-
-
-            Row headerRow = sheet.createRow(0);
-            Cell headerCell = headerRow.createCell(0);
-            headerCell.setCellValue("Данные сотрудника: " + employee.getName());
-
-
-            int rowNum = 2;
-            String[][] employeeData = {
-                    {"Имя", employee.getName()},
-                    {"Email", employee.getEmail() != null ? employee.getEmail() : ""},
-                    {"Телефон", employee.getPhone() != null ? employee.getPhone() : ""}
-            };
-
-            for (String[] data : employeeData) {
-                Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(data[0]);
-                row.createCell(1).setCellValue(data[1]);
-            }
 
             workbook.write(outputStream);
         } finally {

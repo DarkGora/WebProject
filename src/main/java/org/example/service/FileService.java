@@ -3,7 +3,7 @@ package org.example.service;
 import org.example.dto.EmployeeDto;
 import org.example.fileFabrica.FileGenerator;
 import org.example.fileFabrica.FileGeneratorFactory;
-import org.example.request.FileFormat;
+import org.example.fileFabrica.FileFormat;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
