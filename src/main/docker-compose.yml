@@ -6,7 +6,22 @@ services:
     ports:
       - "5444:5432"
     environment:
-          - POSTGRES_USER=user
-          - POSTGRES_PASSWORD=12345
-          - POSTGRES_DB=db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=12345
+      - POSTGRES_DB=db
     restart: always
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=12345
+    volumes:
+    - rabbitmq_data:/var/lib/rabbitmq
+volumes:
+  rabbitmq_data:
