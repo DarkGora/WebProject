@@ -9,10 +9,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
-public class AmqpProducerService {
+public class AmqpProducerServic {
     public final RabbitTemplate template;
 
     public void sendMessage(EmployeeDto employee, FileFormat fileFormat) {
-        template.convertAndSend(RabbitConfig.MAIL_QUEUE,employee);
+        template.convertAndSend(RabbitConfig.BAGiS_QUEUE,employee);
     }
 }
+

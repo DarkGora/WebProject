@@ -23,7 +23,7 @@ public class EducationRepository {
     public EducationRepository() {
         try {
             this.sessionFactory = new Configuration()
-                    .configure() // Загружает hibernate.cfg.xml
+                    .configure()
                     .buildSessionFactory();
             log.info("SessionFactory успешно создан для EducationRepository");
         } catch (Exception e) {

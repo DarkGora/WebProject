@@ -17,15 +17,35 @@ public class RabbitConfig {
     public static final String MAIL_QUEUE = "mailQueue";
     public static final String MAIL_EXCHANGE = "mailExchange";
     public static final String MAIL_ROUTING_KEY = "mail.routing.key";
+    public static final String BAGiS_QUEUE = "BagisQueue";
+    public static final String BAGiS_EXCHANGE = "BagixExchange";
+    public static final String BAGiS_ROUTING_KEY = "Bagis.routing.key";
 
     @Bean
-    public Queue queue() {
+    public Queue mailQueue() {
         return new Queue(MAIL_QUEUE, false);
+    }
+
+    @Bean
+    public Queue bagisQueue() {
+        return new Queue(BAGiS_QUEUE, false);
     }
 
     @Bean
     public DirectExchange mailExchange() {
         return new DirectExchange(MAIL_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public DirectExchange bagisExchange() {
+        return new DirectExchange(BAGiS_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Binding bagisbinding(Queue bagisQueue, DirectExchange bagisExchange) {
+        return BindingBuilder.bind(bagisQueue)
+                .to(bagisExchange)
+                .with(BAGiS_ROUTING_KEY);
     }
 
     @Bean
