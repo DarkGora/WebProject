@@ -47,4 +47,33 @@ public class AmqpConsumerService {
             e.printStackTrace();
         }
     }
+
+    @RabbitListener(queues = RabbitConfig.BAGiS_QUEUE)
+    public void receiveExcelMessage(EmployeeDto employee) {
+        System.out.println("Go to Excel to email ot: " + employee);
+
+        try {
+            ByteArrayOutputStream outputStream = fileService.createFile(employee, FileFormat.EXEL);
+            byte[] fileContent = outputStream.toByteArray();
+            String fileName = employee.getName() + "_resume.xlsx";
+
+            emailService.sendEmailWithAttachment(
+                    "andrey.evushvggtjo@gmail.com",
+                    "Резюме в Excel " + employee.getName(),
+                    "В приложении Excel fiels с resume сотрудника",
+                    fileContent,
+                    fileName,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+
+            log.info("Email успешно ушёл: {}", employee.getName());
+
+        } catch (IOException e) {
+            System.err.println("Ошибка отправки: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Ошибка отправки: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

@@ -7,10 +7,12 @@ import org.example.dto.CallbackRequest;
 import org.example.dto.EmployeeDto;
 import org.example.request.CreateEmployeeRequest;
 import org.example.fileFabrica.FileFormat;
-import org.example.fileFabrica.SentFileRequest;
+import org.example.dto.SentFileRequest;
 import org.example.service.EmailService;
 import org.example.service.EmployeeServiceJPA;
 import org.example.service.FileService;
+import org.example.service.rabbitMQ.AmqpConsumerService;
+import org.example.service.rabbitMQ.AmqpProducerServic;
 import org.example.service.rabbitMQ.AmqpProducerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,9 +25,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
-import static org.example.fileFabrica.FileFormat.DOCX;
-import static org.example.fileFabrica.FileFormat.EXEL;
-
 @RestController
 @RequestMapping("/api")
 public class Callbackcontroller {
@@ -37,6 +36,8 @@ public class Callbackcontroller {
     private FileService fileService;
     @Autowired
     AmqpProducerService amqpProducerService;
+    @Autowired
+    AmqpProducerServic amqpConsumerServic;
     @Autowired
     EmployeeServiceJPA service;
 
@@ -127,7 +128,7 @@ public class Callbackcontroller {
             if (sendAll) {
                 List<EmployeeDto> allEmployees = service.getAllEmployee();
                 for (EmployeeDto employee : allEmployees) {
-                    amqpProducerService.sendMessage(employee, fileFormat);
+                    amqpConsumerServic.sendMessage(employee, fileFormat);
                 }
                 return ResponseEntity.ok("Запросы для " + allEmployees.size() + " сотрудников отправлены в Rabbit");
             } else if (id != null) {
