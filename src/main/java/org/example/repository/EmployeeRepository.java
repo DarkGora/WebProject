@@ -36,4 +36,5 @@ public interface EmployeeRepository {
     int deleteBySchool(String school);
     void saveReview(Review review);
     List<Review> findReviewsByEmployeeId(Long employeeId);
+    long countByNameContaining(String name);
 }

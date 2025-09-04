@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.Employee;
 import org.example.model.Review;
+import org.example.model.Skills;
 import org.example.service.EmployeeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -124,16 +125,17 @@ public class EmployeeController {
         try {
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
+
             if (employee.getPhotoPath() != null) {
                 Path filePath = Paths.get(UPLOAD_DIR, employee.getPhotoPath().replace("/images/", ""));
                 if (!Files.exists(filePath)) {
                     employee.setPhotoPath("/images/default.jpg");
                 }
             }
-            // Создаем новый Review с employeeId, без id
             Review review = new Review();
-            review.setEmployeeId(id);
-            log.debug("Инициализация Review для формы: id={}, employeeId={}", review.getId(), review.getEmployeeId());
+            review.setEmployee(employee);
+            log.debug("Инициализация Review для формы: id={}, employee={}",
+                    review.getId(), employee.getId());
             model.addAttribute("employee", employee);
             model.addAttribute("review", review);
             return "employee-details";
@@ -220,20 +222,19 @@ public class EmployeeController {
         try {
             log.debug("Поиск сотрудников по имени: {}, страница: {}, размер: {}", name, page, pageSize);
             List<Employee> employees = employeeService.findByNameContaining(name, page * pageSize, pageSize);
-            log.debug("Найдено сотрудников: {}", employees.size());
-            long totalEmployees = employeeService.count();
-            int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
+
+            // ИСПРАВЛЕНО: Должно быть количество найденных, а не всех сотрудников
+            long totalFound = employeeService.countByNameContaining(name);
+            int totalPages = (int) Math.ceil((double) totalFound / pageSize);
 
             model.addAttribute("employees", employees);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
+            model.addAttribute("totalEmployees", totalFound);
             model.addAttribute("searchName", name);
+            model.addAttribute("skillCategories", Skills.getAllCategories());
             return "employees";
         } catch (IllegalArgumentException e) {
-            log.error("Некорректные параметры поиска: имя={}, страница={}: {}", name, page, e.getMessage());
-            model.addAttribute("error", "Некорректные параметры поиска");
-            return "employees";
-        } catch (Exception e) {
             log.error("Ошибка при поиске сотрудников: имя={}, страница={}: {}", name, page, e.getMessage());
             model.addAttribute("error", "Ошибка при поиске сотрудников");
             return "employees";
@@ -246,26 +247,20 @@ public class EmployeeController {
                             BindingResult result,
                             RedirectAttributes redirect) {
         log.info("Попытка добавить отзыв для сотрудника ID: {}", id);
-        log.debug("Данные отзыва: employeeId={}, rating={}, comment={}",
-                review.getEmployeeId(), review.getRating(), review.getComment());
 
         if (!employeeService.existsById(id)) {
             log.warn("Сотрудник с ID {} не найден", id);
             redirect.addFlashAttribute("error", "Сотрудник не найден");
             return "redirect:/";
         }
-
-        if (review.getEmployeeId() == null || !review.getEmployeeId().equals(id)) {
-            log.warn("Некорректный employeeId: получено {}, ожидалось {}",
-                    review.getEmployeeId(), id);
-            result.rejectValue("employeeId", "error.review",
-                    "Некорректный ID сотрудника");
+        if (review.getEmployee() == null || !review.getEmployee().getId().equals(id)) {
+            log.warn("Некорректная связь с сотрудником: получено {}, ожидалось {}",
+                    review.getEmployee() != null ? review.getEmployee().getId() : "null", id);
+            result.rejectValue("employee", "error.review", "Некорректный сотрудник");
         }
 
         if (result.hasErrors()) {
             log.warn("Ошибки валидации отзыва: {}", result.getAllErrors());
-            result.getFieldErrors().forEach(error ->
-                    log.warn("Ошибка в поле {}: {}", error.getField(), error.getDefaultMessage()));
             redirect.addFlashAttribute("error", "Ошибка в данных отзыва: " +
                     result.getAllErrors().stream()
                             .map(e -> e.getDefaultMessage())
@@ -280,8 +275,7 @@ public class EmployeeController {
             log.info("Отзыв успешно сохранен для сотрудника ID: {}", id);
             redirect.addFlashAttribute("success", "Отзыв успешно добавлен");
         } catch (Exception e) {
-            log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}",
-                    id, e.getMessage(), e);
+            log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}", id, e.getMessage(), e);
             redirect.addFlashAttribute("error", "Ошибка при добавлении отзыва: " + e.getMessage());
         }
         return "redirect:/employee/" + id;
@@ -294,21 +288,23 @@ public class EmployeeController {
             return null;
         }
 
-        validateFile(file);
-
-        String fileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
-        Path filePath = Paths.get(UPLOAD_DIR, fileName).toAbsolutePath().normalize();
-
         try {
+            validateFile(file);
+            String fileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
+            Path filePath = Paths.get(UPLOAD_DIR, fileName).toAbsolutePath().normalize();
+
             Files.createDirectories(filePath.getParent());
             try (var inputStream = file.getInputStream()) {
                 Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
             }
             log.info("Файл сохранен: {} в {}", fileName, filePath);
             return "/images/" + fileName;
-        } catch (IOException e) {
-            log.error("Ошибка при сохранении файла {}: {}", fileName, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка валидации файла: {}", e.getMessage());
             throw e;
+        } catch (IOException e) {
+            log.error("Ошибка при сохранении файла: {}", e.getMessage());
+            throw new IOException("Ошибка при сохранении файла: " + e.getMessage(), e);
         }
     }
 

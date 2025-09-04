@@ -82,6 +82,9 @@ public class EmployeeService {
 
     @Transactional
     public void addSkill(Long employeeId, String skillName) {
+        if (employeeId == null) throw new IllegalArgumentException("ID сотрудника не может быть null");
+        if (skillName == null || skillName.isBlank()) throw new IllegalArgumentException("Название навыка не может быть пустым");
+
         Skills skill = Skills.fromString(skillName);
         if (skill == null) {
             throw new IllegalArgumentException("Неизвестный навык: " + skillName);
@@ -130,11 +133,13 @@ public class EmployeeService {
 
     @Transactional
     public Review saveReview(Review review) {
-        if (review.getEmployeeId() == null) {
-            throw new IllegalArgumentException("ID сотрудника не может быть null");
+        if (review.getEmployee() == null || review.getEmployee().getId() == null) {
+            throw new IllegalArgumentException("Сотрудник не может быть null");
         }
-        Employee employee = employeeRepository.findById(review.getEmployeeId())
+
+        Employee employee = employeeRepository.findById(review.getEmployee().getId())
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
         review.setEmployee(employee);
         return reviewRepository.save(review);
     }
@@ -160,6 +165,15 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public boolean existsById(Long id) {
         return employeeRepository.existsById(id);
+    }
+
+    // В классе EmployeeService добавляем:
+    @Transactional(readOnly = true)
+    public long countByNameContaining(String name) {
+        if (name == null || name.isBlank()) {
+            return employeeRepository.count();
+        }
+        return employeeRepository.countByNameContaining(name);
     }
 
     @Transactional(readOnly = true)

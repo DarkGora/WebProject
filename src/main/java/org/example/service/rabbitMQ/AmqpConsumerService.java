@@ -21,7 +21,7 @@ public class AmqpConsumerService {
 
     @RabbitListener(queues = RabbitConfig.MAIL_QUEUE)
     public void receiveMessage(EmployeeDto employee) {
-        System.out.println("Получен сотрудник: " + employee);
+        log.info("Получен сотрудник для отправки email: {}", employee.getName());
 
         try {
             ByteArrayOutputStream outputStream = fileService.createFile(employee, FileFormat.DOCX);
@@ -40,13 +40,12 @@ public class AmqpConsumerService {
             log.info("Email с резюме отправлен для сотрудника: {}", employee.getName());
 
         } catch (IOException e) {
-            System.err.println("Ошибка при создании файла: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Ошибка при создании файла для сотрудника {}: {}", employee.getName(), e.getMessage());
         } catch (Exception e) {
-            System.err.println("Ошибка при отправке email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Ошибка при отправке email для сотрудника {}: {}", employee.getName(), e.getMessage());
         }
     }
+
 
     @RabbitListener(queues = RabbitConfig.BAGiS_QUEUE)
     public void receiveExcelMessage(EmployeeDto employee) {
