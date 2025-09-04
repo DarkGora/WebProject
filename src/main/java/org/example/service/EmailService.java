@@ -44,32 +44,44 @@ public class EmailService {
             helper.setSubject("Сообщение от " + request.getName());
             helper.setFrom("dima.pulik1488@gmail.com");
 
-            String emailContent = "<h3>Новое сообщение</h3>" +
-                    "<p><strong>Имя:</strong> " + request.getName() + "</p>";
+            StringBuilder emailContent = new StringBuilder();
+            emailContent.append("<h3>Новое сообщение</h3>")
+                    .append("<p><strong>Имя:</strong> ").append(request.getName()).append("</p>");
 
+            if (request.getEmail() != null) {
+                emailContent.append("<p><strong>Email:</strong> ").append(request.getEmail()).append("</p>");
+            }
+            if (request.getMessage() != null) {
+                emailContent.append("<p><strong>Сообщение:</strong> ").append(request.getMessage()).append("</p>");
+            }
 
+            // Добавляем вложения если есть
+            boolean hasAttachments = false;
             if (docFile != null && docFile.size() > 0) {
-                emailContent += "<li>Word</li>";
                 addAttachment(helper, docFile.toByteArray(),
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         "Сообщение.docx", "Документ заявки");
+                hasAttachments = true;
             }
 
             if (excelFile != null && excelFile.size() > 0) {
-                emailContent += "<li>Excel</li>";
                 addAttachment(helper, excelFile.toByteArray(),
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         "Отчет.xlsx", "Excel отчет");
+                hasAttachments = true;
             }
 
-            emailContent += "</ul>";
+            if (hasAttachments) {
+                emailContent.append("<p><strong>Вложения:</strong> ");
+                if (docFile != null && docFile.size() > 0) emailContent.append("Word документ, ");
+                if (excelFile != null && excelFile.size() > 0) emailContent.append("Excel отчет");
+                emailContent.append("</p>");
+            }
 
-            helper.setText(emailContent, true);
-
+            helper.setText(emailContent.toString(), true);
             mailSender.send(message);
             logger.info("Email успешно отправлен для заявки от {} с {} вложениями",
-                    request.getName(),
-                    countAttachments(docFile, excelFile));
+                    request.getName(), countAttachments(docFile, excelFile));
 
         } catch (MessagingException e) {
             logger.error("Ошибка при отправке email: {}", e.getMessage(), e);
@@ -150,8 +162,8 @@ public class EmailService {
                 infoRun.setText("Email: " + request.getEmail());
                 infoRun.addBreak();
             }
-            if (request.getName() != null) {
-                infoRun.setText("Сообщение: " + request.getName());
+            if (request.getMessage() != null) { // ИСПРАВЛЕНО: getMessage() вместо getName()
+                infoRun.setText("Сообщение: " + request.getMessage());
                 infoRun.addBreak();
             }
 
@@ -180,7 +192,7 @@ public class EmailService {
             Row dataRow = sheet.createRow(1);
             dataRow.createCell(0).setCellValue(request.getName());
             dataRow.createCell(1).setCellValue(request.getEmail() != null ? request.getEmail() : "");
-            dataRow.createCell(2).setCellValue(request.getName() != null ? request.getName() : "");
+            dataRow.createCell(2).setCellValue(request.getMessage() != null ? request.getMessage() : ""); // ИСПРАВЛЕНО
 
             workbook.write(outputStream);
         } finally {

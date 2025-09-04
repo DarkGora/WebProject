@@ -3,6 +3,7 @@ package org.example.restcontroller;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.example.dto.CallbackRequest;
 import org.example.dto.EmployeeDto;
 import org.example.request.CreateEmployeeRequest;
@@ -11,8 +12,6 @@ import org.example.dto.SentFileRequest;
 import org.example.service.EmailService;
 import org.example.service.EmployeeServiceJPA;
 import org.example.service.FileService;
-import org.example.service.rabbitMQ.AmqpConsumerService;
-import org.example.service.rabbitMQ.AmqpProducerServic;
 import org.example.service.rabbitMQ.AmqpProducerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +24,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 public class Callbackcontroller {
@@ -36,13 +36,10 @@ public class Callbackcontroller {
     private FileService fileService;
     @Autowired
     AmqpProducerService amqpProducerService;
-    @Autowired
-    AmqpProducerServic amqpConsumerServic;
-    @Autowired
-    EmployeeServiceJPA service;
+
 
     @PostMapping("/callback")
-    public ResponseEntity<String> handleCallback(@RequestBody CallbackRequest request) {
+    public ResponseEntity<String> handleCallback(@Valid @RequestBody CallbackRequest request) {
         try {
             ByteArrayOutputStream docFile = null;
             ByteArrayOutputStream excelFile = null;
@@ -59,8 +56,9 @@ public class Callbackcontroller {
 
             return ResponseEntity.ok("Заявка принята и email отправлен");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Ошибка: " + e.getMessage());
+            log.error("Ошибка при обработке callback: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка обработки заявки: " + e.getMessage());
         }
     }
 
@@ -126,14 +124,14 @@ public class Callbackcontroller {
             @RequestParam(required = false) Long id) {
         try {
             if (sendAll) {
-                List<EmployeeDto> allEmployees = service.getAllEmployee();
+                List<EmployeeDto> allEmployees = employeeService.getAllEmployee();
                 for (EmployeeDto employee : allEmployees) {
-                    amqpConsumerServic.sendMessage(employee, fileFormat);
+                    amqpProducerService.sendToBAGiSQueue(employee, fileFormat);
                 }
                 return ResponseEntity.ok("Запросы для " + allEmployees.size() + " сотрудников отправлены в Rabbit");
             } else if (id != null) {
-                EmployeeDto employee = service.getEmployeeById(id);
-                amqpProducerService.sendMessage(employee, fileFormat);
+                EmployeeDto employee = employeeService.getEmployeeById(id);
+                amqpProducerService.sendToMailQueue(employee, fileFormat);
                 return ResponseEntity.ok("Запрос для " + employee.getName() + " отправлен в Rabbit");
             } else {
                 return ResponseEntity.badRequest().body("Не указан сотрудник");

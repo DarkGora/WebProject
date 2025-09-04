@@ -10,9 +10,17 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 public class AmqpProducerService {
-    public final RabbitTemplate template;
+    private final RabbitTemplate template;
 
-    public void sendMessage(EmployeeDto employee, FileFormat fileFormat) {
-        template.convertAndSend(RabbitConfig.MAIL_QUEUE,employee);
+    public void sendToMailQueue(EmployeeDto employee, FileFormat fileFormat) {
+        template.convertAndSend(RabbitConfig.MAIL_QUEUE, employee);
+    }
+
+    public void sendToBAGiSQueue(EmployeeDto employee, FileFormat fileFormat){
+        template.convertAndSend(RabbitConfig.BAGiS_QUEUE, employee);
+    }
+
+    public void sendToQueue(EmployeeDto employee, String queueName) {
+        template.convertAndSend(queueName, employee);
     }
 }

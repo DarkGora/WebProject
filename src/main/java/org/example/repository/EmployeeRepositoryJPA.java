@@ -56,4 +56,10 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByName(String name);
     Optional<Employee> findByEmail(String name);
+    Page<Employee> findByNameContaining(String name, Pageable pageable);
+
+    long countByNameContaining(String name);
+
+    @Query("SELECT e FROM Employee e JOIN e.skills s WHERE s IN :skillNames")
+    List<Employee> findBySkillsIn(@Param("skillNames") List<String> skillNames);
 }

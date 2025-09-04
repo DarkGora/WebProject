@@ -11,8 +11,8 @@ import org.example.fileFabrica.FileFormat;
 @Setter
 @Data
 public class SentFileRequest {
-    @NotBlank
-    @Email
+    @NotBlank(message = "Email не может быть пустым")
+    @Email(message = "Некорректный формат email")
     private String email;
     private FileFormat fileFormat;
 

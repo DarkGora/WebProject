@@ -217,8 +217,9 @@ public class EmployeeRestController {
             @PathVariable Long id,
             @Valid @RequestBody Review review) {
         try {
-            // Устанавливаем связь с сотрудником
-            review.setEmployeeId(id);
+            Employee employee = employeeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+            review.setEmployee(employee);
             employeeService.saveReview(review);
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (IllegalArgumentException e) {
@@ -252,7 +253,7 @@ public class EmployeeRestController {
         Files.createDirectories(uploadPath);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        return fileName;
+        return "/images/" + fileName;
     }
 
     private void validateFile(MultipartFile file) {

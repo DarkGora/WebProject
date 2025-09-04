@@ -17,17 +17,17 @@ import java.time.LocalDateTime;
 public class Review {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    @NotNull(message = "ID сотрудника не может быть null")
-    @Column(name = "employee_id", nullable = false)
-    private Long employeeId;
+    @NotNull(message = "Сотрудник не может быть null")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
     @NotNull(message = "Рейтинг не может быть null")
     @Min(value = 1, message = "Рейтинг должен быть не менее 1")
     @Max(value = 5, message = "Рейтинг должен быть не более 5")
-    @Column(name = "rating", nullable = false)
+    @Column(nullable = false)
     private Integer rating;
 
     @Column(name = "comment")
@@ -36,24 +36,16 @@ public class Review {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", referencedColumnName = "id", insertable = false, updatable = false)
-    private Employee employee;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-    }
-
-    public Review(Long employeeId) {
-        this.employeeId = employeeId;
     }
 
     @Override
     public String toString() {
         return "Review{" +
                 "id=" + id +
-                ", employeeId=" + employeeId +
+                ", employee=" + (employee != null ? employee.getId() : "null") +
                 ", rating=" + rating +
                 ", comment='" + comment + '\'' +
                 ", createdAt=" + createdAt +

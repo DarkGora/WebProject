@@ -544,8 +544,8 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         }
         Session session = getSession();
         try {
-            return session.createQuery("FROM Employee e WHERE :skill MEMBER OF e.skills", Employee.class)
-                    .setParameter("skill", skill)
+            return session.createQuery("FROM Employee e WHERE :skillName IN elements(e.skills)", Employee.class)
+                    .setParameter("skillName", skill.name())
                     .getResultList();
         } catch (Exception e) {
             log.error("Ошибка при поиске сотрудников по навыку: {}", skill, e);
@@ -561,21 +561,24 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     @Override
     public List<Employee> findBySkills(List<Skills> skills) {
         if (skills == null || skills.isEmpty()) {
-            log.warn("Попытка поиска сотрудников с пустым списком навыков");
             return Collections.emptyList();
         }
+
+        List<String> skillNames = skills.stream()
+                .map(Enum::name)
+                .collect(Collectors.toList());
+
         Session session = getSession();
         try {
-            return session.createQuery("FROM Employee e JOIN e.skills s WHERE s IN :skills", Employee.class)
-                    .setParameter("skills", skills)
+            return session.createQuery("SELECT DISTINCT e FROM Employee e JOIN e.skills s WHERE s IN :skillNames", Employee.class)
+                    .setParameter("skillNames", skillNames)
                     .getResultList();
         } catch (Exception e) {
-            log.error("Ошибка при поиске сотрудников по списку навыков: {}", skills, e);
+            log.error("Ошибка при поиске сотрудников по списку навыков: {}", skillNames, e);
             return Collections.emptyList();
         } finally {
             if (session.isOpen()) {
                 session.close();
-                log.debug("Сессия закрыта для findBySkills");
             }
         }
     }
@@ -686,13 +689,16 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     @Override
     public void saveReview(Review review) {
         Objects.requireNonNull(review, "Отзыв не может быть null");
-        Objects.requireNonNull(review.getEmployeeId(), "ID сотрудника в отзыве не может быть null");
+        Objects.requireNonNull(review.getEmployee(), "Сотрудник в отзыве не может быть null");
+
         if (review.getId() != null) {
             log.warn("Попытка сохранить Review с установленным id: {}. Сбрасываем id для persist", review.getId());
-            review.setId(null); // Сбрасываем id, чтобы persist работал как для нового объекта
+            review.setId(null);
         }
+
         log.info("Сохранение отзыва в БД: id={}, employeeId={}, rating={}, comment={}",
-                review.getId(), review.getEmployeeId(), review.getRating(), review.getComment());
+                review.getId(), review.getEmployee().getId(), review.getRating(), review.getComment());
+
         Session session = getSession();
         try {
             session.beginTransaction();
@@ -705,7 +711,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
                 log.debug("Транзакция откатана для saveReview");
             }
             log.error("Ошибка при сохранении отзыва для сотрудника ID {}: {}",
-                    review.getEmployeeId(), e.getMessage(), e);
+                    review.getEmployee().getId(), e.getMessage(), e);
             throw new RuntimeException("Не удалось сохранить отзыв в БД", e);
         } finally {
             if (session.isOpen()) {
@@ -724,7 +730,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
         log.debug("Поиск отзывов для сотрудника ID: {}", employeeId);
         Session session = getSession();
         try {
-            return session.createQuery("FROM Review r WHERE r.employeeId = :employeeId ORDER BY r.createdAt DESC", Review.class)
+            return session.createQuery("FROM Review r WHERE r.employee.id = :employeeId ORDER BY r.createdAt DESC", Review.class)
                     .setParameter("employeeId", employeeId)
                     .getResultList();
         } catch (Exception e) {
@@ -734,6 +740,28 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
             if (session.isOpen()) {
                 session.close();
                 log.debug("Сессия закрыта для findReviewsByEmployeeId");
+            }
+        }
+    }
+
+    @Override
+    public long countByNameContaining(String name) {
+        if (name == null || name.isBlank()) {
+            return count();
+        }
+
+        Session session = getSession();
+        try {
+            return session.createQuery("SELECT COUNT(e) FROM Employee e WHERE LOWER(e.name) LIKE LOWER(:name)", Long.class)
+                    .setParameter("name", "%" + name + "%")
+                    .getSingleResult();
+        } catch (Exception e) {
+            log.error("Ошибка при подсчете сотрудников по имени: {}", name, e);
+            return 0L;
+        } finally {
+            if (session.isOpen()) {
+                session.close();
+                log.debug("Сессия закрыта для countByNameContaining");
             }
         }
     }
