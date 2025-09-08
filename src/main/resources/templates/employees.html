@@ -109,7 +109,22 @@
         .view-switcher .btn {
             border-radius: 8px !important;
         }
+        .badge-skill {
+            background: rgba(102, 126, 234, 0.15);
+            color: #a7b3fd;
+            font-weight: 400;
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+            border-radius: 8px;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.75rem;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
 
+        .badge-skill:hover {
+            background: rgba(102, 126, 234, 0.25);
+            transform: translateY(-1px);
+        }
         .stats-card {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
@@ -335,21 +350,24 @@
                         <input type="text" id="name" name="name" th:value="${param.name}"
                                class="form-control" placeholder="Введите имя...">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="category" class="form-label">Категория навыков:</label>
-                        <select id="category" name="category" class="form-select" onchange="updateSkills()">
+                        <select id="category" name="category" class="form-select">
                             <option value="">Все категории</option>
                             <option th:each="category : ${skillCategories}"
                                     th:value="${category}"
                                     th:text="${category}"
-                                    th:selected="${param.category == category}"></option>
+                                    th:selected="${searchCategory == category}"></option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label for="skill" class="form-label">Навык:</label>
+                    <div class="col-md-3">
+                        <label for="skill" class="form-label">Конкретный навык:</label>
                         <select id="skill" name="skill" class="form-select">
                             <option value="">Все навыки</option>
-                            <!-- Навыки будут заполняться через JavaScript -->
+                            <option th:each="skill : ${T(org.example.model.Skills).values()}"
+                                    th:value="${skill.name()}"
+                                    th:text="${skill.getDisplayName()}"
+                                    th:selected="${searchSkill == skill.name()}"></option>
                         </select>
                     </div>
                     <div class="col-md-12 d-flex align-items-end">
@@ -459,7 +477,7 @@
                                     <span th:each="skill : ${employee.skills}"
                                           class="badge-skill small">
                                         <i class="bi bi-check-circle me-1"></i>
-                                        <span th:text="${skill}"></span>
+                                        <span th:text="${#strings.replace(#strings.replace(skill, '_', ' '), 'Js', 'JS')}"></span>
                                     </span>
                                 </div>
                             </div>
@@ -498,17 +516,37 @@
             <nav th:if="${totalPages > 1}" aria-label="Пагинация" class="mt-4">
                 <ul class="pagination justify-content-center">
                     <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                        <a class="page-link" th:href="@{'/?page=' + (currentPage - 1)}">
+                        <a class="page-link" th:href="@{'/?page=' + (currentPage - 1) +
+                (searchName ? '&name=' + ${searchName} : '') +
+                (searchCategory ? '&category=' + ${searchCategory} : '') +
+                (searchSkill ? '&skill=' + ${searchSkill} : '') +
+                (searchDepartments != null ? #strings.listJoin(searchDepartments, '&department=') : '') +
+                (searchPositions != null ? #strings.listJoin(searchPositions, '&position=') : '') +
+                (searchActive != null ? '&active=' + ${searchActive} : '')}">
                             <i class="bi bi-chevron-left"></i>
                         </a>
                     </li>
-                    <li th:each="page : ${#numbers.sequence(1, totalPages)}"
+                    <li th:each="pageNum : ${#numbers.sequence(1, totalPages)}"
                         class="page-item"
-                        th:classappend="${page == currentPage + 1} ? 'active'">
-                        <a class="page-link" th:href="@{'/?page=' + (page - 1)}" th:text="${page}"></a>
+                        th:classappend="${pageNum == currentPage + 1} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{'/?page=' + (pageNum - 1) +
+                (searchName ? '&name=' + ${searchName} : '') +
+                (searchCategory ? '&category=' + ${searchCategory} : '') +
+                (searchSkill ? '&skill=' + ${searchSkill} : '') +
+                (searchDepartments != null ? #strings.listJoin(searchDepartments, '&department=') : '') +
+                (searchPositions != null ? #strings.listJoin(searchPositions, '&position=') : '') +
+                (searchActive != null ? '&active=' + ${searchActive} : '')}"
+                           th:text="${pageNum}"></a>
                     </li>
                     <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
-                        <a class="page-link" th:href="@{'/?page=' + (currentPage + 1)}">
+                        <a class="page-link" th:href="@{'/?page=' + (currentPage + 1) +
+                (searchName ? '&name=' + ${searchName} : '') +
+                (searchCategory ? '&category=' + ${searchCategory} : '') +
+                (searchSkill ? '&skill=' + ${searchSkill} : '') +
+                (searchDepartments != null ? #strings.listJoin(searchDepartments, '&department=') : '') +
+                (searchPositions != null ? #strings.listJoin(searchPositions, '&position=') : '') +
+                (searchActive != null ? '&active=' + ${searchActive} : '')}">
                             <i class="bi bi-chevron-right"></i>
                         </a>
                     </li>
@@ -534,13 +572,23 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     // Демо-навыки для примера
-    const demoSkills = {
-        "Backend": ["JAVA", "SPRING", "SPRING_BOOT", "HIBERNATE", "JPA", "SQL"],
-        "Frontend": ["HTML", "CSS", "JAVASCRIPT", "REACT", "ANGULAR", "VUE"],
-        "DevOps": ["DOCKER", "KUBERNETES", "AWS", "AZURE"],
-        "Tools": ["GIT", "MAVEN", "GRADLE", "POSTMAN"],
-        "Testing": ["JUNIT", "MOCKITO", "SELENIUM"]
-    };
+    // Вместо demoSkills используем данные с сервера
+    function loadSkills() {
+        fetch('/api/skills')
+            .then(response => response.json())
+            .then(skills => {
+                window.allSkills = skills;
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки навыков:', error);
+            });
+    }
+
+    // Вызывайте при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSkills();
+        // ... остальной код ...
+    });
 
     // Инициализация после загрузки DOM
     document.addEventListener('DOMContentLoaded', function() {
@@ -661,19 +709,24 @@
 
         skillSelect.empty().append('<option value="">Все навыки</option>');
 
-        // Если категория выбрана, загружаем навыки с сервера
         if (category) {
-            fetch('/api/skills?category=' + category)
-                .then(response => response.json())
-                .then(skills => {
-                    skills.forEach(skill => {
-                        skillSelect.append(new Option(skill.displayName, skill.name));
-                    });
-                    skillSelect.trigger('change');
-                })
-                .catch(error => {
-                    console.error('Ошибка загрузки навыков:', error);
+            // Используем Thymeleaf для передачи данных
+            const skillsByCategory = {
+                "Backend": ["JAVA", "SPRING", "SPRING_BOOT", "HIBERNATE", "JPA", "SQL"],
+                "Frontend": ["HTML", "CSS", "JAVASCRIPT", "REACT", "ANGULAR", "VUE"],
+                "DevOps": ["DOCKER", "KUBERNETES", "AWS", "AZURE"],
+                "Tools": ["GIT", "MAVEN", "GRADLE", "POSTMAN"],
+                "Testing": ["JUNIT", "MOCKITO", "SELENIUM"]
+            };
+
+            if (skillsByCategory[category]) {
+                skillsByCategory[category].forEach(skillName => {
+                    // Используем displayName вместо enum name
+                    const displayName = skillName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    skillSelect.append(new Option(displayName, skillName));
                 });
+            }
+            skillSelect.trigger('change');
         }
     }
 </script>

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,6 +33,48 @@ public class EmployeeService {
         }
         return employeeRepository.findAllPaginated(offset, limit);
     }
+
+    // === НОВЫЕ МЕТОДЫ ДЛЯ ФИЛЬТРАЦИИ ===
+
+    @Transactional(readOnly = true)
+    public List<Employee> findWithFilters(int offset, int limit, String name, String category,
+                                          String skill, List<String> departments,
+                                          List<String> positions, Boolean active) {
+        if (offset < 0 || limit <= 0) {
+            throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
+        }
+
+        Pageable pageable = PageRequest.of(offset / limit, limit);
+        Page<Employee> page = employeeRepositoryJPA.findWithFilters(
+                name, category, skill, departments, positions, active, pageable
+        );
+
+        return page.getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public long countWithFilters(String name, String category, String skill,
+                                 List<String> departments, List<String> positions, Boolean active) {
+        return employeeRepositoryJPA.countWithFilters(name, category, skill, departments, positions, active);
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveWithFilters(String name, String category, String skill,
+                                       List<String> departments, List<String> positions) {
+        return employeeRepositoryJPA.countWithFilters(name, category, skill, departments, positions, true);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> findAllDistinctDepartments() {
+        return employeeRepositoryJPA.findDistinctDepartments();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> findAllDistinctPositions() {
+        return employeeRepositoryJPA.findDistinctPositions();
+    }
+
+    // === СУЩЕСТВУЮЩИЕ МЕТОДЫ ===
 
     @Transactional(readOnly = true)
     public Page<Employee> findAllWithFilters(String name, String position, String department, Pageable pageable) {
@@ -167,7 +210,6 @@ public class EmployeeService {
         return employeeRepository.existsById(id);
     }
 
-    // В классе EmployeeService добавляем:
     @Transactional(readOnly = true)
     public long countByNameContaining(String name) {
         if (name == null || name.isBlank()) {

@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- Индексы для таблиц
 CREATE INDEX IF NOT EXISTS idx_reviews_employee_id ON reviews (employee_id);
 CREATE INDEX IF NOT EXISTS idx_educations_employee_id ON educations (employee_id);
+-- Если меняете на enum хранение, обновите таблицу:
+ALTER TABLE employee_skills ALTER COLUMN skill TYPE VARCHAR(255);
 
 -- Вставка тестовых данных
 INSERT INTO employees (name, phone_number, email, telegram, resume, school, about, photo_path, position, department)

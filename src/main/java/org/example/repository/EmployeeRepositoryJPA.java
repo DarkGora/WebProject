@@ -15,7 +15,9 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
-    // Для пагинации и фильтрации
+
+    // === СУЩЕСТВУЮЩИЕ МЕТОДЫ ===
+
     @Query("SELECT e FROM Employee e WHERE " +
             "(:name = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
             "(:position = '' OR e.position = :position) AND " +
@@ -27,7 +29,6 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
             Pageable pageable
     );
 
-    // Добавление навыка сотруднику
     @Modifying
     @Transactional
     @Query(value = "INSERT INTO employee_skills (employee_id, skill) VALUES (:employeeId, :skill)",
@@ -35,7 +36,6 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
     void addSkillToEmployee(@Param("employeeId") Long employeeId,
                             @Param("skill") String skill);
 
-    // Удаление навыка у сотрудника
     @Modifying
     @Transactional
     @Query(value = "DELETE FROM employee_skills WHERE employee_id = :employeeId AND skill = :skill",
@@ -43,12 +43,10 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
     void removeSkillFromEmployee(@Param("employeeId") Long employeeId,
                                  @Param("skill") String skill);
 
-    // Получение всех навыков сотрудника
     @Query(value = "SELECT skill FROM employee_skills WHERE employee_id = :employeeId",
             nativeQuery = true)
     Set<String> findSkillsByEmployeeId(@Param("employeeId") Long employeeId);
 
-    // Проверка наличия навыка у сотрудника
     @Query(value = "SELECT COUNT(*) > 0 FROM employee_skills WHERE employee_id = :employeeId AND skill = :skill",
             nativeQuery = true)
     boolean hasSkill(@Param("employeeId") Long employeeId,
@@ -62,4 +60,58 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
 
     @Query("SELECT e FROM Employee e JOIN e.skills s WHERE s IN :skillNames")
     List<Employee> findBySkillsIn(@Param("skillNames") List<String> skillNames);
+
+    // === НОВЫЕ МЕТОДЫ ДЛЯ ФИЛЬТРАЦИИ ===
+
+    @Query("SELECT DISTINCT e.department FROM Employee e WHERE e.department IS NOT NULL ORDER BY e.department")
+    List<String> findDistinctDepartments();
+
+    @Query("SELECT DISTINCT e.position FROM Employee e WHERE e.position IS NOT NULL ORDER BY e.position")
+    List<String> findDistinctPositions();
+
+    // Метод для фильтрации с пагинацией
+    @Query("SELECT e FROM Employee e WHERE " +
+            "(:name IS NULL OR :name = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+            "(:category IS NULL OR :category = '' OR EXISTS (SELECT s FROM e.skills s WHERE LOWER(s) LIKE LOWER(CONCAT('%', :category, '%')))) AND " +
+            "(:skill IS NULL OR :skill = '' OR :skill MEMBER OF e.skills) AND " +
+            "(:departments IS NULL OR e.department IN :departments) AND " +
+            "(:positions IS NULL OR e.position IN :positions) AND " +
+            "(:active IS NULL OR e.active = :active)")
+    Page<Employee> findWithFilters(@Param("name") String name,
+                                   @Param("category") String category,
+                                   @Param("skill") String skill,
+                                   @Param("departments") List<String> departments,
+                                   @Param("positions") List<String> positions,
+                                   @Param("active") Boolean active,
+                                   Pageable pageable);
+
+    // Метод для подсчета с фильтрами
+    @Query("SELECT COUNT(e) FROM Employee e WHERE " +
+            "(:name IS NULL OR :name = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+            "(:category IS NULL OR :category = '' OR EXISTS (SELECT s FROM e.skills s WHERE LOWER(s) LIKE LOWER(CONCAT('%', :category, '%')))) AND " +
+            "(:skill IS NULL OR :skill = '' OR :skill MEMBER OF e.skills) AND " +
+            "(:departments IS NULL OR e.department IN :departments) AND " +
+            "(:positions IS NULL OR e.position IN :positions) AND " +
+            "(:active IS NULL OR e.active = :active)")
+    long countWithFilters(@Param("name") String name,
+                          @Param("category") String category,
+                          @Param("skill") String skill,
+                          @Param("departments") List<String> departments,
+                          @Param("positions") List<String> positions,
+                          @Param("active") Boolean active);
+
+    // Альтернативная версия для списка (без пагинации)
+    @Query("SELECT e FROM Employee e WHERE " +
+            "(:name IS NULL OR :name = '' OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+            "(:category IS NULL OR :category = '' OR EXISTS (SELECT s FROM e.skills s WHERE LOWER(s) LIKE LOWER(CONCAT('%', :category, '%')))) AND " +
+            "(:skill IS NULL OR :skill = '' OR :skill MEMBER OF e.skills) AND " +
+            "(:departments IS NULL OR e.department IN :departments) AND " +
+            "(:positions IS NULL OR e.position IN :positions) AND " +
+            "(:active IS NULL OR e.active = :active)")
+    List<Employee> findWithFiltersList(@Param("name") String name,
+                                       @Param("category") String category,
+                                       @Param("skill") String skill,
+                                       @Param("departments") List<String> departments,
+                                       @Param("positions") List<String> positions,
+                                       @Param("active") Boolean active);
 }
