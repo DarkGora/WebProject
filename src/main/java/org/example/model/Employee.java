@@ -79,6 +79,7 @@ public class Employee {
     @CollectionTable(name = "employee_skills",
             joinColumns = @JoinColumn(name = "employee_id"))
     @Column(name = "skill")
+    @Convert(converter = SkillsConverter.class)
     @Builder.Default
     private Set<String> skills = new HashSet<>();
 

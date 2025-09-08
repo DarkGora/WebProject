@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.dto.CallbackRequest;
 import org.example.dto.EmployeeDto;
+import org.example.model.Skills;
 import org.example.request.CreateEmployeeRequest;
 import org.example.fileFabrica.FileFormat;
 import org.example.dto.SentFileRequest;
@@ -22,7 +23,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -61,6 +64,27 @@ public class Callbackcontroller {
                     .body("Ошибка обработки заявки: " + e.getMessage());
         }
     }
+    @GetMapping("/skills")
+    public List<SkillDTO> getSkillsByCategory(@RequestParam(required = false) String category) {
+        if (category != null && !category.isBlank()) {
+            return Skills.getByCategory(category).stream()
+                    .map(skill -> new SkillDTO(skill.name(), skill.getDisplayName()))
+                    .collect(Collectors.toList());
+        }
+
+        return Arrays.stream(Skills.values())
+                .map(skill -> new SkillDTO(skill.name(), skill.getDisplayName()))
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/skill-categories")
+    public List<String> getSkillCategories() {
+        return Skills.getAllCategories();
+    }
+
+    // DTO класс
+    public record SkillDTO(String name, String displayName) {}
+
 
     @PostMapping("/creaty")
     public ResponseEntity<EmployeeDto> createEmployee(

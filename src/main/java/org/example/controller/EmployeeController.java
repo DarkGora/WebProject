@@ -15,6 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,21 +37,51 @@ public class EmployeeController {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
     @GetMapping("/")
-    public String listEmployees(@RequestParam(defaultValue = "0") int page, Model model) {
+    public String listEmployees(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String skill,
+            @RequestParam(required = false) List<String> department,
+            @RequestParam(required = false) List<String> position,
+            @RequestParam(required = false) Boolean active,
+            Model model) {
+
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
-            List<Employee> employees = employeeService.findAll(page * pageSize, pageSize);
-            long totalEmployees = employeeService.count();
-            long activeEmployees = employees.stream().filter(Employee::isActive).count();
+
+            // Получаем сотрудников с фильтрацией
+            List<Employee> employees = employeeService.findWithFilters(
+                    page * pageSize, pageSize, name, category, skill, department, position, active
+            );
+
+            long totalEmployees = employeeService.countWithFilters(name, category, skill, department, position, active);
+            long activeEmployees = employeeService.countActiveWithFilters(name, category, skill, department, position);
 
             int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
+
+            // Получаем уникальные отделы и должности для фильтров
+            List<String> departments = employeeService.findAllDistinctDepartments();
+            List<String> positions = employeeService.findAllDistinctPositions();
 
             model.addAttribute("employees", employees);
             model.addAttribute("currentPage", page);
             model.addAttribute("totalPages", totalPages);
             model.addAttribute("totalEmployees", totalEmployees);
             model.addAttribute("activeEmployees", activeEmployees);
+            model.addAttribute("departments", departments);
+            model.addAttribute("positions", positions);
+            model.addAttribute("skillCategories", Skills.getAllCategories());
+
+            // Сохраняем параметры фильтрации для пагинации
+            model.addAttribute("searchName", name);
+            model.addAttribute("searchCategory", category);
+            model.addAttribute("searchSkill", skill);
+            model.addAttribute("searchDepartments", department);
+            model.addAttribute("searchPositions", position);
+            model.addAttribute("searchActive", active);
+
         } catch (IllegalArgumentException e) {
             log.error("Некорректные параметры для страницы {}: {}", page, e.getMessage());
             model.addAttribute("error", "Некорректные параметры");
@@ -58,6 +90,38 @@ public class EmployeeController {
             model.addAttribute("error", "Ошибка при загрузке списка сотрудников");
         }
         return "employees";
+    }
+    @ModelAttribute("paginationParams")
+    public String getPaginationParams(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String skill,
+            @RequestParam(required = false) List<String> department,
+            @RequestParam(required = false) List<String> position,
+            @RequestParam(required = false) Boolean active) {
+
+        StringBuilder params = new StringBuilder();
+
+        if (name != null && !name.isBlank()) {
+            params.append("&name=").append(URLEncoder.encode(name, StandardCharsets.UTF_8));
+        }
+        if (category != null && !category.isBlank()) {
+            params.append("&category=").append(URLEncoder.encode(category, StandardCharsets.UTF_8));
+        }
+        if (skill != null && !skill.isBlank()) {
+            params.append("&skill=").append(URLEncoder.encode(skill, StandardCharsets.UTF_8));
+        }
+        if (department != null && !department.isEmpty()) {
+            department.forEach(dept -> params.append("&department=").append(URLEncoder.encode(dept, StandardCharsets.UTF_8)));
+        }
+        if (position != null && !position.isEmpty()) {
+            position.forEach(pos -> params.append("&position=").append(URLEncoder.encode(pos, StandardCharsets.UTF_8)));
+        }
+        if (active != null) {
+            params.append("&active=").append(active);
+        }
+
+        return params.toString();
     }
 
     @GetMapping("/employee/new")
