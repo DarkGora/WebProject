@@ -50,18 +50,14 @@ public class EmployeeController {
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
-
-            // Получаем сотрудников с фильтрацией
             List<Employee> employees = employeeService.findWithFilters(
                     page * pageSize, pageSize, name, category, skill, department, position, active
             );
-
             long totalEmployees = employeeService.countWithFilters(name, category, skill, department, position, active);
             long activeEmployees = employeeService.countActiveWithFilters(name, category, skill, department, position);
 
             int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
 
-            // Получаем уникальные отделы и должности для фильтров
             List<String> departments = employeeService.findAllDistinctDepartments();
             List<String> positions = employeeService.findAllDistinctPositions();
 
@@ -74,7 +70,6 @@ public class EmployeeController {
             model.addAttribute("positions", positions);
             model.addAttribute("skillCategories", Skills.getAllCategories());
 
-            // Сохраняем параметры фильтрации для пагинации
             model.addAttribute("searchName", name);
             model.addAttribute("searchCategory", category);
             model.addAttribute("searchSkill", skill);
@@ -287,7 +282,6 @@ public class EmployeeController {
             log.debug("Поиск сотрудников по имени: {}, страница: {}, размер: {}", name, page, pageSize);
             List<Employee> employees = employeeService.findByNameContaining(name, page * pageSize, pageSize);
 
-            // ИСПРАВЛЕНО: Должно быть количество найденных, а не всех сотрудников
             long totalFound = employeeService.countByNameContaining(name);
             int totalPages = (int) Math.ceil((double) totalFound / pageSize);
 
@@ -366,7 +360,6 @@ public class EmployeeController {
             log.debug("Пустой файл - сохранение не требуется");
             return null;
         }
-
         try {
             validateFile(file);
             String fileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));
