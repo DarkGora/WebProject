@@ -344,7 +344,22 @@ public class EmployeeController {
         }
         return "redirect:/employee/" + id;
     }
-
+    @GetMapping("/login")
+    public String login(@RequestParam(value = "error", required = false) String error,
+                        @RequestParam(value = "logout", required = false) String logout,
+                        Model model) {
+        if (error != null) {
+            model.addAttribute("error", "Неверное имя пользователя или пароль");
+        }
+        if (logout != null) {
+            model.addAttribute("message", "Вы успешно вышли из системы");
+        }
+        return "login";
+    }
+    @GetMapping("/access-denied")
+    public String accessDenied() {
+        return "access-denied";
+    }
 
     private String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
