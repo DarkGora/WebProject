@@ -50,18 +50,14 @@ public class EmployeeController {
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
-
-            // Получаем сотрудников с фильтрацией
             List<Employee> employees = employeeService.findWithFilters(
                     page * pageSize, pageSize, name, category, skill, department, position, active
             );
-
             long totalEmployees = employeeService.countWithFilters(name, category, skill, department, position, active);
             long activeEmployees = employeeService.countActiveWithFilters(name, category, skill, department, position);
 
             int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
 
-            // Получаем уникальные отделы и должности для фильтров
             List<String> departments = employeeService.findAllDistinctDepartments();
             List<String> positions = employeeService.findAllDistinctPositions();
 
@@ -74,7 +70,6 @@ public class EmployeeController {
             model.addAttribute("positions", positions);
             model.addAttribute("skillCategories", Skills.getAllCategories());
 
-            // Сохраняем параметры фильтрации для пагинации
             model.addAttribute("searchName", name);
             model.addAttribute("searchCategory", category);
             model.addAttribute("searchSkill", skill);
@@ -287,7 +282,6 @@ public class EmployeeController {
             log.debug("Поиск сотрудников по имени: {}, страница: {}, размер: {}", name, page, pageSize);
             List<Employee> employees = employeeService.findByNameContaining(name, page * pageSize, pageSize);
 
-            // ИСПРАВЛЕНО: Должно быть количество найденных, а не всех сотрудников
             long totalFound = employeeService.countByNameContaining(name);
             int totalPages = (int) Math.ceil((double) totalFound / pageSize);
 
@@ -344,14 +338,28 @@ public class EmployeeController {
         }
         return "redirect:/employee/" + id;
     }
-
+    @GetMapping("/login")
+    public String login(@RequestParam(value = "error", required = false) String error,
+                        @RequestParam(value = "logout", required = false) String logout,
+                        Model model) {
+        if (error != null) {
+            model.addAttribute("error", "Неверное имя пользователя или пароль");
+        }
+        if (logout != null) {
+            model.addAttribute("message", "Вы успешно вышли из системы");
+        }
+        return "login";
+    }
+    @GetMapping("/access-denied")
+    public String accessDenied() {
+        return "access-denied";
+    }
 
     private String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             log.debug("Пустой файл - сохранение не требуется");
             return null;
         }
-
         try {
             validateFile(file);
             String fileName = generateUniqueFileName(Objects.requireNonNull(file.getOriginalFilename()));

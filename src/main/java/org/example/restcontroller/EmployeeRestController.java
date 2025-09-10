@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,7 @@ public class EmployeeRestController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Получить список сотрудников (с пагинацией и фильтрами)")
     @GetMapping
     public ResponseEntity<?> listEmployees(
@@ -60,6 +62,7 @@ public class EmployeeRestController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @Operation(summary = "Получить сотрудника по ID")
     @GetMapping("/{id}")
     public ResponseEntity<?> getEmployee(@PathVariable Long id) {
@@ -90,6 +93,7 @@ public class EmployeeRestController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Создать нового сотрудника")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createEmployee(
@@ -113,7 +117,7 @@ public class EmployeeRestController {
             return ResponseEntity.internalServerError().body("Ошибка сервера при создании сотрудника");
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Обновить сотрудника")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateEmployee(
@@ -139,6 +143,7 @@ public class EmployeeRestController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить сотрудника")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
