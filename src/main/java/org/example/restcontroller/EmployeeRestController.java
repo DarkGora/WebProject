@@ -163,7 +163,7 @@ public class EmployeeRestController {
                     log.warn("Фото не найдено: {}", photoFullPath);
                 }
             }
-            
+
             EmployeeQuickViewDTO quickView = new EmployeeQuickViewDTO();
             quickView.setId(employee.getId());
             quickView.setName(employee.getName());

@@ -1,4 +1,4 @@
-package org.example.Annota;
+package org.example.annota;
 
 public @interface FileMaker {
 }

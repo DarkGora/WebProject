@@ -1,4 +1,4 @@
-package org.example.Annota;
+package org.example.annota;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -26,7 +26,7 @@ public class SecurityConfig {
                                 "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
 
                         // REST API - разные права доступа
-                        .requestMatchers("/api/employees/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/employees/**").hasAnyRole("USER", "ADMIN", "GUEST")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .requestMatchers("/projects/**").hasRole("ADMIN")
 
@@ -65,6 +65,12 @@ public class SecurityConfig {
                 .username("admin")
                 .password(passwordEncoder().encode("admin"))
                 .roles("ADMIN")
+                .build();
+
+        UserDetails employee = User.builder()
+                .username("employee")
+                .password(passwordEncoder().encode("pass"))
+                .roles("GUEST")
                 .build();
 
         return new InMemoryUserDetailsManager(user, admin);
