@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum Skills {
     // Backend
@@ -45,6 +46,11 @@ public enum Skills {
     Skills(String displayName, String category) {
         this.displayName = displayName;
         this.category = category;
+    }
+    @JsonValue
+    public String getValue() {
+        return displayName;
+
     }
 
     public String getDisplayName() {

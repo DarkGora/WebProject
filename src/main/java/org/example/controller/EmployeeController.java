@@ -7,6 +7,9 @@ import org.example.model.Employee;
 import org.example.model.Review;
 import org.example.model.Skills;
 import org.example.service.EmployeeService;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -46,7 +49,11 @@ public class EmployeeController {
             @RequestParam(required = false) List<String> position,
             @RequestParam(required = false) Boolean active,
             Model model) {
-
+                // Проверяем, аутентифицирован ли пользователь
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            return "redirect:/login";
+        }
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);

@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dto.EmployeeQuickViewDTO;
 import org.example.model.Employee;
 import org.example.model.Education;
 import org.example.model.Review;
+import org.example.model.Skills;
 import org.example.service.EmployeeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +28,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -140,6 +143,53 @@ public class EmployeeRestController {
         } catch (Exception e) {
             log.error("Ошибка при обновлении сотрудника с ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.internalServerError().body("Ошибка сервера при обновлении сотрудника");
+        }
+    }
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @Operation(summary = "Получить данные сотрудника для быстрого просмотра")
+    @GetMapping("/{id}/quick-view")
+    public ResponseEntity<?> getEmployeeQuickView(@PathVariable Long id) {
+        try {
+            Employee employee = employeeService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник с ID " + id + " не найден"));
+
+            String photoPath = "/images/default-avatar.png";
+            if (employee.getPhotoPath() != null && !employee.getPhotoPath().isEmpty()) {
+                String cleanPhotoPath = employee.getPhotoPath().replaceFirst("^/", "");
+                Path photoFullPath = Paths.get(UPLOAD_DIR, cleanPhotoPath).toAbsolutePath().normalize();
+                if (Files.exists(photoFullPath)) {
+                    photoPath = employee.getPhotoPath();
+                } else {
+                    log.warn("Фото не найдено: {}", photoFullPath);
+                }
+            }
+            
+            EmployeeQuickViewDTO quickView = new EmployeeQuickViewDTO();
+            quickView.setId(employee.getId());
+            quickView.setName(employee.getName());
+            quickView.setPosition(employee.getPosition());
+            quickView.setDepartment(employee.getDepartment());
+            quickView.setEmail(employee.getEmail());
+            quickView.setPhoneNumber(employee.getPhoneNumber());
+            quickView.setActive(employee.isActive());
+            quickView.setCreatedAt(employee.getCreatedAt());
+            quickView.setPhotoPath(photoPath);
+
+
+            List<String> skillsAsStrings = employee.getSkills() != null && !employee.getSkills().isEmpty()
+                    ? employee.getSkills().stream()
+                    .collect(Collectors.toList())
+                    : List.of();
+
+            quickView.setSkills(skillsAsStrings);
+
+            return ResponseEntity.ok(quickView);
+        } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник не найден для быстрого просмотра: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при получении данных сотрудника с ID {} для быстрого просмотра: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при получении данных для быстрого просмотра");
         }
     }
 
