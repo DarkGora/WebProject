@@ -47,6 +47,7 @@ public enum Skills {
         this.displayName = displayName;
         this.category = category;
     }
+
     @JsonValue
     public String getValue() {
         return displayName;
@@ -89,10 +90,30 @@ public enum Skills {
         if (value == null || value.isBlank()) {
             return null;
         }
+
+        // Приводим к верхнему регистру и заменяем пробелы и точки
+        String normalizedValue = value.toUpperCase()
+                .replace(" ", "_")
+                .replace(".", "")
+                .replace("-", "_");
+
         try {
-            return valueOf(value.toUpperCase().replace(" ", "_").replace(".", ""));
+            return valueOf(normalizedValue);
         } catch (IllegalArgumentException e) {
-            return null;
+            // Дополнительная логика для обработки специальных случаев
+            return handleSpecialCases(normalizedValue);
+        }
+    }
+    private static Skills handleSpecialCases(String value) {
+        // Обработка специальных случаев или синонимов
+        switch (value) {
+            case "TESTING": // Если приходит "TESTING", возвращаем какой-то навык из Testing
+                return JUNIT; // или другой подходящий навык
+            case "POSTMAN": // Убедитесь, что POSTMAN правильно обрабатывается
+                return POSTMAN;
+            // Добавьте другие специальные случаи по необходимости
+            default:
+                return null;
         }
     }
 }

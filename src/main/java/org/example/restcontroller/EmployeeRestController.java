@@ -175,9 +175,10 @@ public class EmployeeRestController {
             quickView.setCreatedAt(employee.getCreatedAt());
             quickView.setPhotoPath(photoPath);
 
-
+            // Исправленное преобразование навыков
             List<String> skillsAsStrings = employee.getSkills() != null && !employee.getSkills().isEmpty()
                     ? employee.getSkills().stream()
+                    .map(Skills::getDisplayName) // Используем getDisplayName() вместо toString()
                     .collect(Collectors.toList())
                     : List.of();
 
@@ -192,7 +193,6 @@ public class EmployeeRestController {
             return ResponseEntity.internalServerError().body("Ошибка сервера при получении данных для быстрого просмотра");
         }
     }
-
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить сотрудника")
     @DeleteMapping("/{id}")

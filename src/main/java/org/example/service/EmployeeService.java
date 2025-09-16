@@ -40,13 +40,28 @@ public class EmployeeService {
     public List<Employee> findWithFilters(int offset, int limit, String name, String category,
                                           String skill, List<String> departments,
                                           List<String> positions, Boolean active) {
+        log.debug("Фильтры: name={}, category={}, skill={}, departments={}, positions={}, active={}",
+                name, category, skill, departments, positions, active);
+
         if (offset < 0 || limit <= 0) {
             throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
         }
 
+        // Преобразуем skill из строки в enum, если нужно
+        Skills skillEnum = null;
+        if (skill != null && !skill.isBlank()) {
+            skillEnum = Skills.fromString(skill);
+            if (skillEnum == null) {
+                log.warn("Неизвестный навык: {}", skill);
+                // Возвращаем пустой список или обрабатываем иначе
+                return List.of();
+            }
+        }
+
         Pageable pageable = PageRequest.of(offset / limit, limit);
         Page<Employee> page = employeeRepositoryJPA.findWithFilters(
-                name, category, skill, departments, positions, active, pageable
+                name, category, skillEnum != null ? skillEnum.name() : null,
+                departments, positions, active, pageable
         );
 
         return page.getContent();
@@ -121,7 +136,7 @@ public class EmployeeService {
         employeeRepository.delete(employee);
     }
 
-    // === Навыки (Skills) ===
+    // === Навыки (Skills) - ИСПРАВЛЕННЫЕ МЕТОДЫ ===
 
     @Transactional
     public void addSkill(Long employeeId, String skillName) {
@@ -133,9 +148,12 @@ public class EmployeeService {
             throw new IllegalArgumentException("Неизвестный навык: " + skillName);
         }
 
-        if (!employeeRepositoryJPA.hasSkill(employeeId, skill.name())) {
-            employeeRepositoryJPA.addSkillToEmployee(employeeId, skill.name());
-        }
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        // Используем метод addSkill из сущности Employee
+        employee.addSkill(skill);
+        employeeRepository.save(employee);
     }
 
     @Transactional
@@ -145,16 +163,35 @@ public class EmployeeService {
             throw new IllegalArgumentException("Неизвестный навык: " + skillName);
         }
 
-        if (!employeeRepositoryJPA.hasSkill(employeeId, skill.name())) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        if (!employee.getSkills().contains(skill)) {
             throw new IllegalArgumentException("У сотрудника нет навыка: " + skillName);
         }
 
-        employeeRepositoryJPA.removeSkillFromEmployee(employeeId, skill.name());
+        // Используем метод removeSkill из сущности Employee
+        employee.removeSkill(skill);
+        employeeRepository.save(employee);
     }
 
     @Transactional(readOnly = true)
     public Set<String> getSkills(Long employeeId) {
-        return employeeRepositoryJPA.findSkillsByEmployeeId(employeeId);
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        // Преобразуем Skills в строки (displayName)
+        return employee.getSkills().stream()
+                .map(Skills::getDisplayName)
+                .collect(Collectors.toSet());
+    }
+
+    // Альтернативный метод для получения Skills как enum'ов
+    @Transactional(readOnly = true)
+    public Set<Skills> getSkillsAsEnum(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+        return employee.getSkills();
     }
 
     // === Образование (Educations) ===

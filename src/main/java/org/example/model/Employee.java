@@ -1,6 +1,5 @@
 package org.example.model;
 
-
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -78,10 +77,10 @@ public class Employee {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "employee_skills",
             joinColumns = @JoinColumn(name = "employee_id"))
+    @Enumerated(EnumType.STRING)
     @Column(name = "skill")
-    @Convert(converter = SkillsConverter.class)
     @Builder.Default
-    private Set<String> skills = new HashSet<>();
+    private Set<Skills> skills = new HashSet<>();
 
     @Valid
     @Builder.Default
@@ -93,12 +92,11 @@ public class Employee {
         createdAt = LocalDateTime.now();
     }
 
-
-    public void addSkill(String skill) {
+    public void addSkill(Skills skill) {
         this.skills.add(skill);
     }
 
-    public void removeSkill(String skill) {
+    public void removeSkill(Skills skill) {
         this.skills.remove(skill);
     }
 
