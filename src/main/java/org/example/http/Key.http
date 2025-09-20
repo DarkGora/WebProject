@@ -1,0 +1,128 @@
+POST http://localhost:8081/realms/master/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=admin-cli
+    &grant_type=password
+    &username=admin
+    &password=12345
+    &scope=openid
+
+> {%
+    client.global.set("keycloak_admin_token_with_openid", response.body.access_token);
+    client.log("Keycloak admin token получен");
+%}
+
+### Получение реалмов
+GET http://localhost:8081/admin/realms
+Authorization: Bearer {{keycloak_admin_token_with_openid}}
+
+### Получение информации о user
+GET http://localhost:8081/realms/master/protocol/openid-connect/userinfo
+Authorization: Bearer {{keycloak_admin_token_with_openid}}
+
+
+### Auth and get token
+POST http://localhost:8081/realms/resume/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=resume&
+client_secret=KVuPoQU3WCvObNlU5HWooLhbBFhq1TJ2&
+username=admin&
+password=admin&
+grant_type=password&
+scope=openid profile email
+
+> {% client.global.set("auth_token", response.body.access_token); %}
+
+### Get all promo codes with token
+GET http://localhost:8000/promo-cod
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Получение информации о user
+GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
+Authorization: Bearer {{auth_token}}
+
+###  Auth and get token User
+POST http://localhost:8081/realms/resume/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=resume&
+username=user&
+password=user&
+client_secret=KVuPoQU3WCvObNlU5HWooLhbBFhq1TJ2&
+grant_type=password&
+scope=openid profile email
+
+> {% client.global.set("auth_token", response.body.access_token); %}
+
+### Get all promo codes with token
+GET http://localhost:8000/employee
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Получение информации о user
+GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
+Authorization: Bearer {{auth_token}}
+
+###  Auth and get token
+POST http://localhost:8081/realms/resume/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=resume&
+client_secret=KVuPoQU3WCvObNlU5HWooLhbBFhq1TJ2&
+grant_type=client_credentials&
+scope=openid profile email
+
+> {% client.global.set("auth_token", response.body.access_token); %}
+
+### Get all promo codes with token
+GET http://localhost:8000/employees
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Получение информации о user
+GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
+Authorization: Bearer {{auth_token}}
+
+### Step 1: Get authorization code (redirect to login form)
+GET http://localhost:8081/realms/resume/protocol/openid-connect/auth?
+    client_id=resume&
+    response_type=code&
+    scope=openid profile email&
+    redirect_uri=http://localhost:8000/login/oauth2/code/keycloak&
+    state=abc123&
+    prompt=login
+
+### Step 2: Authenticate and get authorization code
+POST http://localhost:8081/realms/resume/login-actions/authenticate?
+    session_code={{session_code}}&
+    execution={{execution}}&
+    client_id={{client_id}}&
+    tab_id={{tab_id}}
+Content-Type: application/x-www-form-urlencoded
+Cookie: AUTH_SESSION_ID={{AUTH_SESSION_ID}}; AUTH_SESSION_ID_LEGACY={{AUTH_SESSION_ID_LEGACY}}; KC_RESTART={{KC_RESTART}}
+
+username=admin&password=admin
+
+### Step 3: Exchange authorization code for tokens
+POST http://localhost:8081/realms/resume/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&
+client_id=resume&
+client_secret=KVuPoQU3WCvObNlU5HWooLhbBFhq1TJ2&
+redirect_uri=http://localhost:8000/login/oauth2/code/keycloak&
+code=d5c15ca6-952d-4e5e-936d-5ba5cdf23759.9f6d5acd-45e5-4900-85e1-64040a75290a.2edb0dac-f8a7-411f-809a-270d799db7b0
+
+### Get all promo codes with token
+GET http://localhost:8000/promo-cod
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Получение информации о user
+GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
+Authorization: Bearer {{auth_token}}
+
+
+
