@@ -1,5 +1,7 @@
 package org.example.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +11,9 @@ import org.example.model.Skills;
 import org.example.service.EmployeeService;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -361,6 +365,28 @@ public class EmployeeController {
     public String accessDenied() {
         return "access-denied";
     }
+    @PostMapping("/logout")
+    public String Logout(@AuthenticationPrincipal OidcUser oidcUser,
+                               HttpServletRequest request,
+                               HttpServletResponse response) throws IOException {
+
+        if (oidcUser != null && oidcUser.getIdToken() != null) {
+            String idToken = oidcUser.getIdToken().getTokenValue();
+            String logoutUrl = "http://localhost:8081/realms/resume/protocol/openid-connect/logout";
+            String redirectUri = "http://localhost:8080/login?logout=true";
+
+            String fullLogoutUrl = logoutUrl +
+                    "?id_token_hint=" + idToken +
+                    "&post_logout_redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+
+            response.sendRedirect(fullLogoutUrl);
+            return null;
+        }
+
+        request.getSession().invalidate();
+        return "redirect:/login";
+    }
+
 
     private String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
