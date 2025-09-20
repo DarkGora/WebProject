@@ -68,57 +68,22 @@
             font-size: 16px;
         }
 
-        .login-form {
+        .login-options {
             position: relative;
             z-index: 1;
         }
 
-        .form-group {
-            margin-bottom: 25px;
-            position: relative;
+        .keycloak-login {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #444;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .input-with-icon {
-            position: relative;
-        }
-
-        .input-with-icon i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #764ba2;
-            font-size: 18px;
-        }
-
-        .input-with-icon input {
-            width: 100%;
-            padding: 15px 15px 15px 50px;
-            border: 2px solid #e1e1e1;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #f9f9f9;
-        }
-
-        .input-with-icon input:focus {
-            border-color: #764ba2;
-            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.2);
-            outline: none;
-            background: #fff;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 15px;
+        .btn-keycloak {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 15px 25px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 12px;
@@ -128,15 +93,37 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+            text-decoration: none;
+            width: 100%;
         }
 
-        .btn-login:hover {
+        .btn-keycloak:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
         }
 
-        .btn-login:active {
+        .btn-keycloak:active {
             transform: translateY(0);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e1e1e1;
+        }
+
+        .divider span {
+            padding: 0 15px;
         }
 
         .alert {
@@ -158,6 +145,19 @@
             background-color: #e8f5e9;
             color: #388e3c;
             border: 1px solid #c8e6c9;
+        }
+
+        .system-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e1e1;
+            text-align: center;
+        }
+
+        .system-info p {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
         }
 
         .floating-elements {
@@ -230,6 +230,11 @@
             .login-container {
                 padding: 30px 20px;
             }
+
+            .btn-keycloak {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -243,38 +248,47 @@
 
     <div class="login-header">
         <h1>Добро пожаловать</h1>
-        <p>Введите ваши учетные данные для входа</p>
+        <p>Система управления сотрудниками</p>
     </div>
+
+    <!-- Сообщения об ошибках -->
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div th:if="${message}" class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span th:text="${message}"></span>
+    </div>
+
     <div th:if="${param.error}" class="alert alert-danger">
-        <i class="fas fa-exclamation-circle"></i> Неверное имя пользователя или пароль
+        <i class="fas fa-exclamation-circle"></i> Ошибка аутентификации. Пожалуйста, попробуйте снова.
     </div>
 
     <div th:if="${param.logout}" class="alert alert-success">
         <i class="fas fa-check-circle"></i> Вы успешно вышли из системы
     </div>
 
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
-
-    <form th:action="@{/login}" method="post" class="login-form">
-        <div class="form-group">
-            <label for="username">Имя пользователя</label>
-            <div class="input-with-icon">
-                <i class="fas fa-user"></i>
-                <input type="text" id="username" name="username" placeholder="Введите ваше имя пользователя" required>
-            </div>
+    <div class="login-options">
+        <!-- Кнопка входа через Keycloak -->
+        <div class="keycloak-login">
+            <a th:href="@{/oauth2/authorization/keycloak}" class="btn-keycloak">
+                <i class="fas fa-key"></i>
+                Войти через Keycloak
+            </a>
         </div>
 
-        <div class="form-group">
-            <label for="password">Пароль</label>
-            <div class="input-with-icon">
-                <i class="fas fa-lock"></i>
-                <input type="password" id="password" name="password" placeholder="Введите ваш пароль" required>
-            </div>
+        <div class="divider">
+            <span>Или</span>
         </div>
 
-        <button type="submit" class="btn-login">Войти в систему</button>
-    </form>
+        <!-- Информация о системе -->
+        <div class="system-info">
+            <p><i class="fas fa-info-circle"></i> Для входа используйте ваши учетные данные Keycloak</p>
+            <p><i class="fas fa-shield-alt"></i> Безопасная аутентификация через OAuth2</p>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -284,16 +298,19 @@
             alert.style.animationDelay = `${index * 0.2}s`;
         });
 
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                this.parentElement.style.transform = 'scale(1.02)';
+        // Анимация при наведении на кнопку
+        const keycloakBtn = document.querySelector('.btn-keycloak');
+        if (keycloakBtn) {
+            keycloakBtn.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 8px 20px rgba(118, 75, 162, 0.4)';
             });
 
-            input.addEventListener('blur', function() {
-                this.parentElement.style.transform = 'scale(1)';
+            keycloakBtn.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 5px 15px rgba(118, 75, 162, 0.3)';
             });
-        });
+        }
     });
 </script>
 </body>

@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 @Configuration
 public class KeycloakSecurityConfig {
@@ -18,17 +19,28 @@ public class KeycloakSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/promo-cod").hasRole("resume. admin")
+                        .requestMatchers(HttpMethod.GET, "/promo-cod").hasRole("resume.admin")
                         .requestMatchers(HttpMethod.GET, "/projects").hasRole("resume.user")
-                        .requestMatchers(HttpMethod.GET, "/employees").hasAnyRole("resume. user", "resume. admin", "resume. client")
-                        .requestMatchers("/ ** ").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/employees").hasAnyRole("resume.user", "resume.admin", "resume.client")
+                        .requestMatchers("/", "/login", "/error", "/access-denied", "/static/**", "/images/**", "/webjars/**", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-                        )
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true)
+                        .failureUrl("/login?error=true")
                 )
-                .csrf(AbstractHttpConfigurer::disable)// + ПОЛНОСТЬЮ ОТКЛЮЧАЕМ CSRF
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
+                )
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                )
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout=true")
+                        .permitAll()
+                )
+                .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
 
