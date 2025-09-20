@@ -71,8 +71,7 @@ ON CONFLICT (email) DO NOTHING;
 INSERT INTO employee_skills (employee_id, skill)
 VALUES
     ((SELECT id FROM employees WHERE email = 'anonim@mail.ru'), 'JAVA'),
-    ((SELECT id FROM employees WHERE email = 'test@mail.ru'), 'SPRING'),
-    ((SELECT id FROM employees WHERE email = 'anonim@mail.ru'), 'TESTING')
+    ((SELECT id FROM employees WHERE email = 'test@mail.ru'), 'SPRING')
 ON CONFLICT (employee_id, skill) DO NOTHING;
 
 -- Вставка образования

@@ -21,16 +21,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authz -> authz
-                        // Публичные эндпоинты
                         .requestMatchers("/", "/public/**", "/login", "/error",
                                 "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
 
-                        // REST API - разные права доступа
-                        .requestMatchers("/api/employees/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/employees/**").hasAnyRole("USER", "ADMIN", "GUEST")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .requestMatchers("/projects/**").hasRole("ADMIN")
 
-                        // MVC эндпоинты
                         .requestMatchers("/employee/new", "/employee/edit/**",
                                 "/employee/delete/**").hasRole("ADMIN")
                         .requestMatchers("/employee/**").hasAnyRole("USER", "ADMIN")
@@ -67,7 +64,13 @@ public class SecurityConfig {
                 .roles("ADMIN")
                 .build();
 
-        return new InMemoryUserDetailsManager(user, admin);
+        UserDetails employee = User.builder()
+                .username("employee")
+                .password(passwordEncoder().encode("pass"))
+                .roles("GUEST")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin, employee);
     }
 
 
