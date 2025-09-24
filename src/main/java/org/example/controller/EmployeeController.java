@@ -9,6 +9,7 @@ import org.example.model.Employee;
 import org.example.model.Review;
 import org.example.model.Skills;
 import org.example.service.EmployeeService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -53,8 +54,7 @@ public class EmployeeController {
             @RequestParam(required = false) List<String> position,
             @RequestParam(required = false) Boolean active,
             Model model) {
-                // Проверяем, аутентифицирован ли пользователь
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();// авторизация
         if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
             return "redirect:/login";
         }
@@ -129,14 +129,14 @@ public class EmployeeController {
 
         return params.toString();
     }
-
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @GetMapping("/employee/new")
     public String newEmployee(Model model) {
         model.addAttribute("employee", new Employee());
         log.debug("Открыта форма для нового сотрудника");
         return "employee-edit";
     }
-
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @GetMapping({"/employee/add", "/employee/edit/{id}"})
     public String editEmployee(@PathVariable(required = false) Long id,
                                Model model,
@@ -163,7 +163,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
     @GetMapping("/employee/{id}/reviews")
     public String viewEmployeeReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         log.info("Запрос на просмотр отзывов для сотрудника ID: {}", id);
@@ -189,7 +189,7 @@ public class EmployeeController {
             return "redirect:/employee/" + id;
         }
     }
-
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
     @GetMapping("/employee/{id}")
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         try {
@@ -219,7 +219,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @PostMapping("/employee/save")
     public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee,
                                BindingResult result,
@@ -260,7 +260,7 @@ public class EmployeeController {
             return "redirect:/employee/" + (employee.getId() != null ? employee.getId() : "new");
         }
     }
-
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @PostMapping("/employee/delete/{id}")
     public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -283,7 +283,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
     @GetMapping("/search")
     public String searchEmployees(@RequestParam(defaultValue = "") String name,
                                   @RequestParam(defaultValue = "0") int page,
@@ -309,7 +309,7 @@ public class EmployeeController {
             return "employees";
         }
     }
-
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
     @PostMapping("/employee/{id}/review")
     public String addReview(@PathVariable Long id,
                             @Valid @ModelAttribute("review") Review review,

@@ -7,20 +7,20 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Configuration
 public class KeycloakSecurityConfig {
@@ -29,9 +29,10 @@ public class KeycloakSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/promo-cod").hasRole("resume.admin")
-                        .requestMatchers(HttpMethod.GET, "/projects").hasRole("resume.user")
-                        .requestMatchers(HttpMethod.GET, "/employees").hasAnyRole("resume.user", "resume.admin", "resume.client")
+                        .requestMatchers(HttpMethod.GET, "/promo-cod").hasAuthority("ROLE_resume.admin")
+                        .requestMatchers(HttpMethod.GET, "/projects").hasAuthority("ROLE_resume.user")
+                        .requestMatchers(HttpMethod.GET, "/employees").hasAnyAuthority("ROLE_resume.user", "ROLE_resume.admin", "ROLE_resume.client")
+                        .requestMatchers("/api/employees/**").hasAnyAuthority("ROLE_resume.user", "ROLE_resume.admin", "ROLE_resume.client")
                         .requestMatchers("/", "/login", "/error", "/access-denied", "/static/**",
                                 "/images/**", "/webjars/**", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated()
@@ -40,6 +41,9 @@ public class KeycloakSecurityConfig {
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
                         .failureUrl("/login?error=true")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .oidcUserService(oidcUserService())
+                        )
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
@@ -50,7 +54,6 @@ public class KeycloakSecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout=true")
-                        .addLogoutHandler(keycloakLogoutHandler())
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
@@ -60,44 +63,38 @@ public class KeycloakSecurityConfig {
                 .build();
     }
 
-    private LogoutHandler keycloakLogoutHandler() {
-        return (request, response, authentication) -> {
-            try {
-                if (authentication != null && authentication.isAuthenticated()) {
-                    String idToken = getIdTokenFromAuthentication(authentication);
-                    String logoutUrl = "http://localhost:8081/realms/resume/protocol/openid-connect/logout";
+    @Bean
+    public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+        final OidcUserService delegate = new OidcUserService();
 
-                    if (idToken != null) {
-                        String redirectUri = "http://localhost:8080/login?logout=true";
-                        String fullLogoutUrl = logoutUrl +
-                                "?id_token_hint=" + idToken +
-                                "&post_logout_redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
+        return (userRequest) -> {
+            OidcUser oidcUser = delegate.loadUser(userRequest);
 
-                        response.sendRedirect(fullLogoutUrl);
-                    } else {
-                        response.sendRedirect("/login?logout=true");
+            Map<String, Object> claims = oidcUser.getClaims();
+            List<String> roleClaims = (List<String>) claims.get("roles");
+
+            System.out.println("=== OIDC User Service ===");
+            System.out.println("Raw roles from claims: " + roleClaims);
+
+            Set<GrantedAuthority> authorities = new HashSet<>();
+
+            authorities.addAll(oidcUser.getAuthorities());
+
+            if (roleClaims != null) {
+                for (String role : roleClaims) {
+                    authorities.add(new SimpleGrantedAuthority(role));
+                    if (role.startsWith("ROLE_")) {
+                        authorities.add(new SimpleGrantedAuthority(role.substring(5)));
                     }
                 }
-            } catch (IOException e) {
-                try {
-                    response.sendRedirect("/login?logout=true");
-                } catch (IOException ex) {
-                }
             }
+
+            System.out.println("Final authorities: " + authorities.stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList()));
+
+            return new DefaultOidcUser(authorities, oidcUser.getIdToken(), oidcUser.getUserInfo());
         };
-    }
-
-    private String getIdTokenFromAuthentication(Authentication authentication) {
-        if (authentication instanceof OAuth2AuthenticationToken) {
-            OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
-            Object principal = oauthToken.getPrincipal();
-
-            if (principal instanceof OidcUser) {
-                OidcUser oidcUser = (OidcUser) principal;
-                return oidcUser.getIdToken().getTokenValue();
-            }
-        }
-        return null;
     }
 
     @Bean

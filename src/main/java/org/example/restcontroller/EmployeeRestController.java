@@ -42,7 +42,9 @@ public class EmployeeRestController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    // === ПРОСМОТР (для всех аутентифицированных с resume ролями) ===
+
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
     @Operation(summary = "Получить список сотрудников (с пагинацией и фильтрами)")
     @GetMapping
     public ResponseEntity<?> listEmployees(
@@ -65,7 +67,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
     @Operation(summary = "Получить сотрудника по ID")
     @GetMapping("/{id}")
     public ResponseEntity<?> getEmployee(@PathVariable Long id) {
@@ -73,7 +75,6 @@ public class EmployeeRestController {
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник с ID " + id + " не найден"));
 
-            // Проверка существования файла фото
             if (employee.getPhotoPath() != null && !employee.getPhotoPath().isEmpty()) {
                 String cleanPhotoPath = employee.getPhotoPath().replaceFirst("^/", "");
                 Path photoFullPath = Paths.get(UPLOAD_DIR, cleanPhotoPath).toAbsolutePath().normalize();
@@ -96,56 +97,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Создать нового сотрудника")
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createEmployee(
-            @Valid @ModelAttribute Employee employee,
-            @RequestParam(value = "photo", required = false) MultipartFile photo) {
-        try {
-            String photoPath = null;
-            if (photo != null && !photo.isEmpty()) {
-                photoPath = storeFile(photo);
-            }
-            Employee savedEmployee = employeeService.save(employee, photoPath);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
-        } catch (IllegalArgumentException e) {
-            log.warn("Ошибка валидации при создании сотрудника: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IOException e) {
-            log.warn("Ошибка загрузки файла: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
-        } catch (Exception e) {
-            log.error("Ошибка при создании сотрудника: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("Ошибка сервера при создании сотрудника");
-        }
-    }
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Обновить сотрудника")
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateEmployee(
-            @PathVariable Long id,
-            @Valid @ModelAttribute Employee employee,
-            @RequestParam(value = "photo", required = false) MultipartFile photo) {
-        try {
-            String photoPath = null;
-            if (photo != null && !photo.isEmpty()) {
-                photoPath = storeFile(photo);
-            }
-            Employee updatedEmployee = employeeService.update(id, employee, photoPath);
-            return ResponseEntity.ok(updatedEmployee);
-        } catch (IllegalArgumentException e) {
-            log.warn("Сотрудник не найден при обновлении: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (IOException e) {
-            log.warn("Ошибка загрузки файла при обновлении: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
-        } catch (Exception e) {
-            log.error("Ошибка при обновлении сотрудника с ID {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("Ошибка сервера при обновлении сотрудника");
-        }
-    }
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
     @Operation(summary = "Получить данные сотрудника для быстрого просмотра")
     @GetMapping("/{id}/quick-view")
     public ResponseEntity<?> getEmployeeQuickView(@PathVariable Long id) {
@@ -175,10 +127,9 @@ public class EmployeeRestController {
             quickView.setCreatedAt(employee.getCreatedAt());
             quickView.setPhotoPath(photoPath);
 
-            // Исправленное преобразование навыков
             List<String> skillsAsStrings = employee.getSkills() != null && !employee.getSkills().isEmpty()
                     ? employee.getSkills().stream()
-                    .map(Skills::getDisplayName) // Используем getDisplayName() вместо toString()
+                    .map(Skills::getDisplayName)
                     .collect(Collectors.toList())
                     : List.of();
 
@@ -193,7 +144,61 @@ public class EmployeeRestController {
             return ResponseEntity.internalServerError().body("Ошибка сервера при получении данных для быстрого просмотра");
         }
     }
-    @PreAuthorize("hasRole('ADMIN')")
+
+    // === АДМИНИСТРИРОВАНИЕ (только для resume.admin) ===
+
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @Operation(summary = "Создать нового сотрудника")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createEmployee(
+            @Valid @ModelAttribute Employee employee,
+            @RequestParam(value = "photo", required = false) MultipartFile photo) {
+        try {
+            String photoPath = null;
+            if (photo != null && !photo.isEmpty()) {
+                photoPath = storeFile(photo);
+            }
+            Employee savedEmployee = employeeService.save(employee, photoPath);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка валидации при создании сотрудника: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IOException e) {
+            log.warn("Ошибка загрузки файла: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при создании сотрудника: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при создании сотрудника");
+        }
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @Operation(summary = "Обновить сотрудника")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateEmployee(
+            @PathVariable Long id,
+            @Valid @ModelAttribute Employee employee,
+            @RequestParam(value = "photo", required = false) MultipartFile photo) {
+        try {
+            String photoPath = null;
+            if (photo != null && !photo.isEmpty()) {
+                photoPath = storeFile(photo);
+            }
+            Employee updatedEmployee = employeeService.update(id, employee, photoPath);
+            return ResponseEntity.ok(updatedEmployee);
+        } catch (IllegalArgumentException e) {
+            log.warn("Сотрудник не найден при обновлении: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IOException e) {
+            log.warn("Ошибка загрузки файла при обновлении: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Ошибка загрузки фото: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Ошибка при обновлении сотрудника с ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Ошибка сервера при обновлении сотрудника");
+        }
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @Operation(summary = "Удалить сотрудника")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
@@ -209,8 +214,9 @@ public class EmployeeRestController {
         }
     }
 
-    // === Employee Skills ===
+    // === Skills (только для admin) ===
 
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @Operation(summary = "Добавить навык сотруднику")
     @PostMapping("/{id}/skills")
     public ResponseEntity<?> addSkill(
@@ -228,6 +234,7 @@ public class EmployeeRestController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @Operation(summary = "Удалить навык у сотрудника")
     @DeleteMapping("/{id}/skills/{skill}")
     public ResponseEntity<?> removeSkill(
@@ -245,8 +252,9 @@ public class EmployeeRestController {
         }
     }
 
-    // === Educations ===
+    // === Educations (только для admin) ===
 
+    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
     @Operation(summary = "Добавить образование сотруднику")
     @PostMapping("/{id}/educations")
     public ResponseEntity<?> addEducation(
@@ -264,8 +272,9 @@ public class EmployeeRestController {
         }
     }
 
-    // === Reviews ===
+    // === Reviews (для всех аутентифицированных) ===
 
+    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
     @Operation(summary = "Добавить отзыв о сотруднике")
     @PostMapping("/{id}/reviews")
     public ResponseEntity<?> addReview(
