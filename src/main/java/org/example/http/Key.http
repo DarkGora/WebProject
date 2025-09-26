@@ -35,7 +35,7 @@ scope=openid profile email
 > {% client.global.set("auth_token", response.body.access_token); %}
 
 ### Get all promo codes with token
-GET http://localhost:8000/promo-cod
+GET http://localhost:8080/promo-cod
 Authorization: Bearer {{auth_token}}
 Accept: application/json
 
@@ -57,7 +57,7 @@ scope=openid profile email
 > {% client.global.set("auth_token", response.body.access_token); %}
 
 ### Get all promo codes with token
-GET http://localhost:8000/employee
+GET http://localhost:8080/employee
 Authorization: Bearer {{auth_token}}
 Accept: application/json
 
@@ -77,7 +77,7 @@ scope=openid profile email
 > {% client.global.set("auth_token", response.body.access_token); %}
 
 ### Get all promo codes with token
-GET http://localhost:8000/employees
+GET http://localhost:8080/employees
 Authorization: Bearer {{auth_token}}
 Accept: application/json
 
@@ -90,7 +90,7 @@ GET http://localhost:8081/realms/resume/protocol/openid-connect/auth?
     client_id=resume&
     response_type=code&
     scope=openid profile email&
-    redirect_uri=http://localhost:8000/login/oauth2/code/keycloak&
+    redirect_uri=http://localhost:8080/login/oauth2/code/keycloak&
     state=abc123&
     prompt=login
 
@@ -112,11 +112,11 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=authorization_code&
 client_id=resume&
 client_secret=KVuPoQU3WCvObNlU5HWooLhbBFhq1TJ2&
-redirect_uri=http://localhost:8000/login/oauth2/code/keycloak&
+redirect_uri=http://localhost:8080/login/oauth2/code/keycloak&
 code=d5c15ca6-952d-4e5e-936d-5ba5cdf23759.9f6d5acd-45e5-4900-85e1-64040a75290a.2edb0dac-f8a7-411f-809a-270d799db7b0
 
 ### Get all promo codes with token
-GET http://localhost:8000/promo-cod
+GET http://localhost:8080/promo-cod
 Authorization: Bearer {{auth_token}}
 Accept: application/json
 
@@ -124,5 +124,16 @@ Accept: application/json
 GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
 Authorization: Bearer {{auth_token}}
 
+
+###
+
+# curl http://localhost:8081/realms/resume/.well-known/openid-configuration
+GET http://localhost:8081/realms/resume/.well-known/openid-configuration
+
+###
+
+### Перевод с английского на русский
+GET https://api.mymemory.translated.net/get?q=hello world&langpair=en|ru
+Accept: application/json
 
 
