@@ -44,6 +44,7 @@ public class EmployeeController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/")
     public String listEmployees(
             @RequestParam(defaultValue = "0") int page,
@@ -54,10 +55,7 @@ public class EmployeeController {
             @RequestParam(required = false) List<String> position,
             @RequestParam(required = false) Boolean active,
             Model model) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();// авторизация
-        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
-            return "redirect:/login";
-        }
+
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
@@ -129,14 +127,14 @@ public class EmployeeController {
 
         return params.toString();
     }
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @GetMapping("/employee/new")
     public String newEmployee(Model model) {
         model.addAttribute("employee", new Employee());
         log.debug("Открыта форма для нового сотрудника");
         return "employee-edit";
     }
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @GetMapping({"/employee/add", "/employee/edit/{id}"})
     public String editEmployee(@PathVariable(required = false) Long id,
                                Model model,
@@ -163,7 +161,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
+    @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/employee/{id}/reviews")
     public String viewEmployeeReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         log.info("Запрос на просмотр отзывов для сотрудника ID: {}", id);
@@ -189,7 +187,7 @@ public class EmployeeController {
             return "redirect:/employee/" + id;
         }
     }
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
+    @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/employee/{id}")
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         try {
@@ -219,7 +217,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/save")
     public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee,
                                BindingResult result,
@@ -260,7 +258,7 @@ public class EmployeeController {
             return "redirect:/employee/" + (employee.getId() != null ? employee.getId() : "new");
         }
     }
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/delete/{id}")
     public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -283,7 +281,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
+    @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/search")
     public String searchEmployees(@RequestParam(defaultValue = "") String name,
                                   @RequestParam(defaultValue = "0") int page,
@@ -309,7 +307,7 @@ public class EmployeeController {
             return "employees";
         }
     }
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.admin','ROLE_resume.client','ROLE_resume.user')")
+    @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @PostMapping("/employee/{id}/review")
     public String addReview(@PathVariable Long id,
                             @Valid @ModelAttribute("review") Review review,
@@ -352,13 +350,19 @@ public class EmployeeController {
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error,
                         @RequestParam(value = "logout", required = false) String logout,
+                        @RequestParam(value = "denied", required = false) String denied,
                         Model model) {
+
         if (error != null) {
-            model.addAttribute("error", "Неверное имя пользователя или пароль");
+            model.addAttribute("error", "Ошибка аутентификации. Проверьте учетные данные.");
         }
         if (logout != null) {
             model.addAttribute("message", "Вы успешно вышли из системы");
         }
+        if (denied != null) {
+            model.addAttribute("error", "Доступ запрещен. Недостаточно прав.");
+        }
+
         return "login";
     }
     @GetMapping("/access-denied")

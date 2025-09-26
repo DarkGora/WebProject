@@ -15,13 +15,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/test")
 public class TestController {
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @GetMapping("/admin-only")
     public String adminOnly() {
         return "This is accessible only to ADMIN";
     }
 
-    @PreAuthorize("hasAuthority('ROLE_resume.user')")
+    @PreAuthorize("hasRole('resume.user')")
     @GetMapping("/user-only")
     public String userOnly() {
         return "This is accessible only to USER";
@@ -36,7 +36,7 @@ public class TestController {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList()));
             result.put("isAdmin", authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_resume.admin")));
+                    .anyMatch(auth -> auth.getAuthority().equals("resume.admin")));
         }
         return result;
     }

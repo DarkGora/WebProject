@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.client.methods.HttpPost;
 import org.example.dto.EmployeeQuickViewDTO;
 import org.example.model.Employee;
 import org.example.model.Education;
@@ -42,9 +43,8 @@ public class EmployeeRestController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-    // === ПРОСМОТР (для всех аутентифицированных с resume ролями) ===
 
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @Operation(summary = "Получить список сотрудников (с пагинацией и фильтрами)")
     @GetMapping
     public ResponseEntity<?> listEmployees(
@@ -67,7 +67,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @Operation(summary = "Получить сотрудника по ID")
     @GetMapping("/{id}")
     public ResponseEntity<?> getEmployee(@PathVariable Long id) {
@@ -97,7 +97,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @Operation(summary = "Получить данные сотрудника для быстрого просмотра")
     @GetMapping("/{id}/quick-view")
     public ResponseEntity<?> getEmployeeQuickView(@PathVariable Long id) {
@@ -147,7 +147,7 @@ public class EmployeeRestController {
 
     // === АДМИНИСТРИРОВАНИЕ (только для resume.admin) ===
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Создать нового сотрудника")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createEmployee(
@@ -172,7 +172,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Обновить сотрудника")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateEmployee(
@@ -198,7 +198,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Удалить сотрудника")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
@@ -216,7 +216,7 @@ public class EmployeeRestController {
 
     // === Skills (только для admin) ===
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Добавить навык сотруднику")
     @PostMapping("/{id}/skills")
     public ResponseEntity<?> addSkill(
@@ -234,7 +234,7 @@ public class EmployeeRestController {
         }
     }
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Удалить навык у сотрудника")
     @DeleteMapping("/{id}/skills/{skill}")
     public ResponseEntity<?> removeSkill(
@@ -254,7 +254,7 @@ public class EmployeeRestController {
 
     // === Educations (только для admin) ===
 
-    @PreAuthorize("hasAuthority('ROLE_resume.admin')")
+    @PreAuthorize("hasRole('resume.admin')")
     @Operation(summary = "Добавить образование сотруднику")
     @PostMapping("/{id}/educations")
     public ResponseEntity<?> addEducation(
@@ -274,7 +274,7 @@ public class EmployeeRestController {
 
     // === Reviews (для всех аутентифицированных) ===
 
-    @PreAuthorize("hasAnyAuthority('ROLE_resume.user', 'ROLE_resume.admin', 'ROLE_resume.client')")
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @Operation(summary = "Добавить отзыв о сотруднике")
     @PostMapping("/{id}/reviews")
     public ResponseEntity<?> addReview(

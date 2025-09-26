@@ -125,4 +125,15 @@ GET http://localhost:8081/realms/resume/protocol/openid-connect/userinfo
 Authorization: Bearer {{auth_token}}
 
 
+###
+
+# curl http://localhost:8081/realms/resume/.well-known/openid-configuration
+GET http://localhost:8081/realms/resume/.well-known/openid-configuration
+
+###
+
+### Перевод с английского на русский
+GET https://api.mymemory.translated.net/get?q=hello world&langpair=en|ru
+Accept: application/json
+
 
