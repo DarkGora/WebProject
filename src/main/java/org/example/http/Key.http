@@ -137,3 +137,22 @@ GET https://api.mymemory.translated.net/get?q=hello world&langpair=en|ru
 Accept: application/json
 
 
+### Создать пользователя в Keycloak (требует админские права)
+POST http://localhost:8081/admin/realms/resume/users
+Content-Type: application/json
+Authorization: Bearer {{keycloak_admin_token_with_openid}}
+
+{
+  "username": "user1",
+  "email": "user11@example.com",
+  "firstName": "Имя",
+  "lastName": "Фамилия",
+  "enabled": true,
+  "credentials": [
+    {
+      "type": "password",
+      "value": "123",
+      "temporary": false
+    }
+  ]
+}
