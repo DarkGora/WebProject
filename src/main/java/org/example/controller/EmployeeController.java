@@ -44,7 +44,12 @@ public class EmployeeController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-    @PreAuthorize("isAuthenticated()")
+
+    @GetMapping("/home")
+    public String homePage() {
+        return "home"; // Публичная страница
+    }
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @GetMapping("/")
     public String listEmployees(
             @RequestParam(defaultValue = "0") int page,
@@ -262,7 +267,7 @@ public class EmployeeController {
     @PostMapping("/employee/delete/{id}")
     public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
-            log.info("Удаление сотрудника с ID: {}", id);
+            log.info("Удаление сотрудника с ID: {} пользователем с ролью ADMIN", id);
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
             if (employee.getPhotoPath() != null) {

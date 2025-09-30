@@ -1,9 +1,11 @@
 package org.example.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -57,5 +59,19 @@ public class DebugController {
 
         return result;
     }
+    @GetMapping("/api/debug/roles")
+    public ResponseEntity<?> debugRoles(Authentication authentication) {
+        if (authentication != null) {
+            return ResponseEntity.ok(Map.of(
+                    "username", authentication.getName(),
+                    "authorities", authentication.getAuthorities().stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .collect(Collectors.toList()),
+                    "isAdmin", authentication.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_resume.admin"))
+            ));
+        }
+        return ResponseEntity.ok("Not authenticated");
+        }
 }
 

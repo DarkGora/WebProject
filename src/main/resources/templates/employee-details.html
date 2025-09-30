@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -167,13 +168,24 @@
         <a href="#reviews" class="nav-link" th:aria-label="'Отзыв'" lang="ru">
             <i class="bi bi-book"></i> <span>Отзыв</span>
         </a>
-        <form th:action="@{'/employee/delete/' + ${employee.id}}" method="post" class="d-inline" onsubmit="return confirmDelete()">
-            <input type="hidden" name="_method" value="delete" />
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" th:if="${_csrf != null}"/>
-            <button type="submit" class="btn btn-outline-danger" th:aria-label="'Удалить ' + ${employee.name ?: 'Сотрудник'}">
-                <i class="bi bi-trash"></i> <span>Удалить</span>
-            </button>
-        </form>
+
+        <!-- Кнопка удаления - ТОЛЬКО для администраторов -->
+        <div sec:authorize="hasRole('resume.admin')">
+            <form th:action="@{'/employee/delete/' + ${employee.id}}" method="post" class="d-inline" onsubmit="return confirmDelete()">
+                <input type="hidden" name="_method" value="delete" />
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" th:if="${_csrf != null}"/>
+                <button type="submit" class="btn btn-outline-danger" th:aria-label="'Удалить ' + ${employee.name ?: 'Сотрудник'}">
+                    <i class="bi bi-trash"></i> <span>Удалить</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Кнопка редактирования - ТОЛЬКО для администраторов -->
+        <div sec:authorize="hasRole('resume.admin')">
+            <a th:href="@{'/employee/edit/' + ${employee.id}}" class="btn btn-outline-warning" th:aria-label="'Редактировать ' + ${employee.name ?: 'Сотрудник'}">
+                <i class="bi bi-pencil"></i> <span>Редактировать</span>
+            </a>
+        </div>
     </div>
 </nav>
 
