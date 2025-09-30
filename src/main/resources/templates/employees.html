@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml" lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -771,14 +771,15 @@
                         <label class="form-check-label" for="selectAll">Выбрать все</label>
                     </div>
                 </div>
-
-                <div class="btn-group">
+                <div sec:authorize="hasRole('resume.admin')">
+                    <div class="btn-group">
                     <button class="btn btn-outline-danger" id="deleteSelected" disabled> <!--Правка нужна -->
                         <i class="bi bi-trash"></i> Удалить выбранные
                     </button>
                     <button class="btn btn-outline-success" id="exportSelected"> <!--Правка нужна -->
                         <i class="bi bi-download"></i> Экспорт
                     </button>
+                    </div>
                 </div>
             </div>
 
@@ -802,15 +803,18 @@
                                     <li><a class="dropdown-item" th:href="@{'/employee/' + ${employee.id}}">
                                         <i class="bi bi-eye me-2"></i>Просмотр
                                     </a></li>
+                                    <div sec:authorize="hasRole('resume.admin')">
                                     <li><a class="dropdown-item" th:href="@{'/employee/edit/' + ${employee.id}}">
                                         <i class="bi bi-pencil me-2"></i>Редактировать
                                     </a></li>
+                                    </div>
                                     <li>
                                         <a class="dropdown-item" href="#"
                                            th:onclick="'showQuickView(' + ${employee.id} + ', this); return false;'">
                                             <i class="bi bi-lightning me-2"></i>Быстрый просмотр
                                         </a>
                                     </li>
+                                    <div sec:authorize="hasRole('resume.admin')">
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form th:action="@{'/employee/delete/' + ${employee.id}}" method="post" class="d-inline">
@@ -821,6 +825,7 @@
                                             </button>
                                         </form>
                                     </li>
+                                    </div>
                                 </ul>
                             </div>
                         </div>
@@ -977,10 +982,13 @@
 </div>
 
 <!-- Быстрые действия -->
+
 <div class="quick-actions">
+    <div sec:authorize="hasRole('resume.admin')">
     <a th:href="@{/employee/add}" class="quick-action-btn btn btn-primary" aria-label="Добавить сотрудника" data-bs-toggle="tooltip" data-bs-placement="left" title="Добавить сотрудника">
         <i class="bi bi-plus-circle"></i>
     </a>
+    </div>
     <button class="quick-action-btn btn btn-info" id="quickSearch" data-bs-toggle="modal" data-bs-target="#quickSearchModal" data-bs-placement="left" title="Быстрый поиск">
         <i class="bi bi-search"></i> <!-- доработать -->
     </button>
