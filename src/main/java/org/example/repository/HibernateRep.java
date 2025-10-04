@@ -1,4 +1,4 @@
-package org.example.repository;
+/*package org.example.repository;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import java.util.stream.StreamSupport;
 /**
  * Репозиторий для управления сущностью Employee с использованием Hibernate.
  */
-@Slf4j
+/*@Slf4j
 @Repository
 public class HibernateRep implements EmployeeRepository, AutoCloseable {
     private final SessionFactory sessionFactory;
@@ -43,7 +43,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     /**
      * Получение сессии Hibernate.
      */
-    private Session getSession() {
+   /* private Session getSession() {
         try {
             return sessionFactory.openSession();
         } catch (Exception e) {
@@ -55,7 +55,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     /**
      * Безопасное выполнение операции в транзакции.
      */
-    private <T> T executeInTransaction(TransactionOperation<T> operation) {
+   /* private <T> T executeInTransaction(TransactionOperation<T> operation) {
         Session session = getSession();
         try {
             session.beginTransaction();
@@ -78,7 +78,7 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     /**
      * Безопасное выполнение операции без транзакции.
      */
-    private <T> T executeWithoutTransaction(QueryOperation<T> operation) {
+ /*   private <T> T executeWithoutTransaction(QueryOperation<T> operation) {
         Session session = getSession();
         try {
             return operation.execute(session);
@@ -561,4 +561,4 @@ public class HibernateRep implements EmployeeRepository, AutoCloseable {
     private interface QueryOperation<T> {
         T execute(Session session);
     }
-}
+} */

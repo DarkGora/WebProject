@@ -1,4 +1,4 @@
-package org.example.repository;
+/*package org.example.repository;
 
 import org.example.model.Employee;
 import org.example.model.Review;
@@ -140,4 +140,4 @@ public interface EmployeeRepositoryJPA extends JpaRepository<Employee, Long> {
                                           @Param("positions") List<String> positions,
                                           Pageable pageable);
 
-}
+}*/

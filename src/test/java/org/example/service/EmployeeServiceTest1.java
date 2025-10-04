@@ -29,7 +29,7 @@ class EmployeeServiceTest1 {
     private ReviewRepository reviewRepository;
 
     @Mock
-    private EmployeeRepositoryJPA employeeRepositoryJPA;
+    private EmployeeRepository employeeRepositoryJPA;
 
     private final int OFFSET = 1;
     private final int LIMIT = 10;

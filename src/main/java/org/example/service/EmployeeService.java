@@ -23,7 +23,6 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EducationRepository educationRepository;
     private final ReviewRepository reviewRepository;
-    private final EmployeeRepositoryJPA employeeRepositoryJPA;
 
     // === ОСНОВНЫЕ ОПЕРАЦИИ СОХРАНЕНИЯ ===
 
@@ -84,6 +83,15 @@ public class EmployeeService {
         employee.setDepartment(employeeDetails.getDepartment());
         employee.setPhoneNumber(employeeDetails.getPhoneNumber());
         employee.setActive(employeeDetails.isActive());
+        employee.setSchool(employeeDetails.getSchool());
+        employee.setAbout(employeeDetails.getAbout());
+        employee.setResume(employeeDetails.getResume());
+        employee.setTelegram(employeeDetails.getTelegram());
+
+        // Обновляем навыки если переданы
+        if (employeeDetails.getSkills() != null) {
+            employee.setSkills(employeeDetails.getSkills());
+        }
 
         // Обновляем фото если передано новое
         if (photoPath != null) {
@@ -136,7 +144,6 @@ public class EmployeeService {
 
     // === DEPRECATED - для обратной совместимости ===
 
-
     @Deprecated
     @Transactional
     public Employee save(@NotNull @Valid Employee employee, String photoPath) {
@@ -159,7 +166,8 @@ public class EmployeeService {
             log.warn("Некорректные параметры пагинации: offset={}, limit={}", offset, limit);
             throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
         }
-        return employeeRepository.findAllActivePaginated(offset, limit);
+        Pageable pageable = PageRequest.of(offset / limit, limit);
+        return employeeRepository.findAllActivePaginated(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -191,18 +199,44 @@ public class EmployeeService {
             }
         }
 
-        // Категория временно игнорируется, так как она вызывает проблемы в запросах
-        if (category != null && !category.isBlank()) {
-            log.info("Фильтрация по категории временно отключена: {}", category);
-        }
-
         Pageable pageable = PageRequest.of(offset / limit, limit);
-        Page<Employee> page = employeeRepositoryJPA.findWithFilters(
+        Page<Employee> page = employeeRepository.findWithFilters(
                 name, skillEnumName,
                 departments, positions, active, false, pageable
         );
 
         return page.getContent();
+    }
+
+    // НОВЫЙ МЕТОД ДЛЯ КОНТРОЛЛЕРА
+    @Transactional(readOnly = true)
+    public Page<Employee> findWithFilters(String name, String category, String skill,
+                                          List<String> departments, List<String> positions,
+                                          Boolean active, Pageable pageable) {
+        log.debug("Фильтры с Pageable: name={}, category={}, skill={}, departments={}, positions={}, active={}",
+                name, category, skill, departments, positions, active);
+
+        // Обработка skill с безопасной обработкой ошибок
+        String skillEnumName = null;
+        if (skill != null && !skill.isBlank()) {
+            try {
+                Skills skillEnum = Skills.fromString(skill);
+                if (skillEnum != null) {
+                    skillEnumName = skillEnum.name();
+                } else {
+                    log.warn("Неизвестный навык: '{}'. Фильтрация по этому навыку будет пропущена.", skill);
+                    return Page.empty();
+                }
+            } catch (Exception e) {
+                log.warn("Ошибка при обработке навыка '{}': {}. Фильтрация по навыку пропущена.",
+                        skill, e.getMessage());
+                return Page.empty();
+            }
+        }
+
+        return employeeRepository.findWithFilters(
+                name, skillEnumName, departments, positions, active, false, pageable
+        );
     }
 
     @Transactional(readOnly = true)
@@ -219,12 +253,7 @@ public class EmployeeService {
             }
         }
 
-        // Категория временно игнорируется
-        if (category != null && !category.isBlank()) {
-            log.info("Подсчет по категории временно отключен: {}", category);
-        }
-
-        return employeeRepositoryJPA.countWithFilters(name, skillEnumName,
+        return employeeRepository.countWithFilters(name, skillEnumName,
                 departments, positions, active, false);
     }
 
@@ -239,7 +268,7 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public List<Employee> findDeletedEmployees() {
         log.debug("Поиск всех удаленных сотрудников");
-        return employeeRepositoryJPA.findByDeletedTrue();
+        return employeeRepository.findByDeletedTrue();
     }
 
     @Transactional(readOnly = true)
@@ -249,7 +278,7 @@ public class EmployeeService {
                 name, departments, positions);
 
         Pageable pageable = PageRequest.of(0, 100);
-        Page<Employee> page = employeeRepositoryJPA.findDeletedWithFilters(
+        Page<Employee> page = employeeRepository.findDeletedWithFilters(
                 name, departments, positions, pageable
         );
         return page.getContent();
@@ -257,30 +286,30 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public long countDeletedEmployees() {
-        return employeeRepositoryJPA.countByDeletedTrue();
+        return employeeRepository.countByDeletedTrue();
     }
 
     @Transactional(readOnly = true)
     public Optional<Employee> findDeletedById(Long id) {
         if (id == null) throw new IllegalArgumentException("ID не может быть null");
-        return employeeRepositoryJPA.findByIdAndDeletedTrue(id);
+        return employeeRepository.findByIdAndDeletedTrue(id);
     }
 
     @Transactional(readOnly = true)
     public List<String> findAllDistinctDepartments() {
-        return employeeRepositoryJPA.findDistinctDepartments();
+        return employeeRepository.findDistinctDepartments();
     }
 
     @Transactional(readOnly = true)
     public List<String> findAllDistinctPositions() {
-        return employeeRepositoryJPA.findDistinctPositions();
+        return employeeRepository.findDistinctPositions();
     }
 
     // === ОСНОВНЫЕ МЕТОДЫ ПОИСКА ===
 
     @Transactional(readOnly = true)
     public Page<Employee> findAllWithFilters(String name, String position, String department, Pageable pageable) {
-        return employeeRepositoryJPA.findByNameContainingAndPositionAndDepartment(
+        return employeeRepository.findByNameContainingAndPositionAndDepartment(
                 name != null ? name : "",
                 position != null ? position : "",
                 department != null ? department : "",
@@ -291,12 +320,31 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public Optional<Employee> findById(Long id) {
         if (id == null) throw new IllegalArgumentException("ID не может быть null");
-        return employeeRepositoryJPA.findByIdAndDeletedFalse(id);
+        return employeeRepository.findByIdAndDeletedFalse(id);
     }
 
     @Transactional(readOnly = true)
     public List<Employee> findByNameContaining(String name, int offset, int limit) {
-        return employeeRepository.findActiveByNameContainingPaginated(name, offset, limit);
+        if (offset < 0 || limit <= 0) {
+            throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
+        }
+        Pageable pageable = PageRequest.of(offset / limit, limit);
+        return employeeRepository.findActiveByNameContainingPaginated(name, pageable);
+    }
+
+    // НОВЫЙ МЕТОД ДЛЯ КОНТРОЛЛЕРА
+    @Transactional(readOnly = true)
+    public Page<Employee> findByNameContainingPage(String name, Pageable pageable) {
+        if (name == null || name.isBlank()) {
+            return employeeRepository.findByDeletedFalse(pageable);
+        }
+        return employeeRepository.findByNameContainingAndDeletedFalse(name, pageable);
+    }
+
+    // НОВЫЙ МЕТОД ДЛЯ КОНТРОЛЛЕРА
+    @Transactional(readOnly = true)
+    public Page<Employee> findAllActive(Pageable pageable) {
+        return employeeRepository.findByDeletedFalse(pageable);
     }
 
     // === НАВЫКИ (Skills) ===
@@ -306,17 +354,66 @@ public class EmployeeService {
         if (employeeId == null) throw new IllegalArgumentException("ID сотрудника не может быть null");
         if (skillName == null || skillName.isBlank()) throw new IllegalArgumentException("Название навыка не может быть пустым");
 
-        Skills skill = Skills.fromString(skillName);
-        if (skill == null) {
-            throw new IllegalArgumentException("Неизвестный навык: " + skillName);
+        try {
+            log.info("=== НАЧАЛО ДОБАВЛЕНИЯ НАВЫКА ===");
+            log.info("Параметры: employeeId={}, skillName='{}'", employeeId, skillName);
+
+            Employee employee = employeeRepository.findById(employeeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+            log.info("Найден сотрудник: {} (ID: {})", employee.getName(), employee.getId());
+            log.info("Текущие навыки ДО добавления: {}",
+                    employee.getSkills() != null ?
+                            employee.getSkills().stream()
+                                    .map(s -> s.name() + " (" + s.getDisplayName() + ")")
+                                    .collect(Collectors.toList()) : "null");
+
+            // Поиск навыка
+            Skills skill = Skills.fromString(skillName);
+            log.info("Результат поиска навыка '{}': {}", skillName, skill);
+
+            if (skill == null) {
+                String availableSkills = Arrays.stream(Skills.values())
+                        .map(s -> s.name() + "=" + s.getDisplayName())
+                        .collect(Collectors.joining(", "));
+                log.warn("Неизвестный навык: '{}'. Доступные: {}", skillName, availableSkills);
+                throw new IllegalArgumentException("Неизвестный навык: " + skillName);
+            }
+
+            // Инициализация коллекции
+            if (employee.getSkills() == null) {
+                employee.setSkills(new HashSet<>());
+                log.info("Инициализирована пустая коллекция навыков");
+            }
+
+            // Проверка дублирования
+            if (employee.getSkills().contains(skill)) {
+                log.info("Навык '{}' уже есть у сотрудника. Пропускаем добавление.", skill.getDisplayName());
+                return;
+            }
+
+            // Добавление навыка
+            log.info("Добавляем навык: {} ({})", skill.name(), skill.getDisplayName());
+            employee.getSkills().add(skill);
+
+            // Сохранение
+            Employee saved = employeeRepository.save(employee);
+            log.info("Сотрудник сохранен. ID: {}", saved.getId());
+
+            // Проверка результата
+            log.info("Навыки ПОСЛЕ добавления: {}",
+                    saved.getSkills().stream()
+                            .map(s -> s.name() + " (" + s.getDisplayName() + ")")
+                            .collect(Collectors.toList()));
+
+            log.info("=== УСПЕШНОЕ ДОБАВЛЕНИЕ НАВЫКА ===");
+
+        } catch (Exception e) {
+            log.error("=== ОШИБКА ПРИ ДОБАВЛЕНИИ НАВЫКА ===");
+            log.error("employeeId: {}, skillName: '{}'", employeeId, skillName);
+            log.error("Ошибка: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось добавить навык: " + e.getMessage(), e);
         }
-
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
-
-        employee.addSkill(skill);
-        employeeRepository.save(employee);
-        log.debug("Добавлен навык '{}' сотруднику ID: {}", skillName, employeeId);
     }
 
     @Transactional
@@ -408,25 +505,25 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public boolean existsById(Long id) {
-        return employeeRepositoryJPA.existsByIdAndDeletedFalse(id);
+        return employeeRepository.existsByIdAndDeletedFalse(id);
     }
 
     @Transactional(readOnly = true)
     public long countByNameContaining(String name) {
         if (name == null || name.isBlank()) {
-            return employeeRepositoryJPA.countByDeletedFalse();
+            return employeeRepository.countByDeletedFalse();
         }
-        return employeeRepositoryJPA.countByNameContainingAndDeletedFalse(name);
+        return employeeRepository.countByNameContainingAndDeletedFalse(name);
     }
 
     @Transactional(readOnly = true)
     public long countActiveEmployees() {
-        return employeeRepositoryJPA.countByDeletedFalse();
+        return employeeRepository.countByDeletedFalse();
     }
 
     @Transactional
     public void permanentDelete(Long id) {
-        Employee employee = employeeRepositoryJPA.findByIdAndDeletedTrue(id)
+        Employee employee = employeeRepository.findByIdAndDeletedTrue(id)
                 .orElseThrow(() -> new IllegalArgumentException("Удаленный сотрудник не найден"));
 
         // Сначала удаляем связанные записи
@@ -437,6 +534,8 @@ public class EmployeeService {
         employeeRepository.delete(employee);
         log.info("Сотрудник ID {} полностью удален из системы", id);
     }
+
+    // === УСТАРЕВШИЕ МЕТОДЫ ===
 
     @Deprecated
     @Transactional

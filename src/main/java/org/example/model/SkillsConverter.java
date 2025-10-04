@@ -1,4 +1,4 @@
-package org.example.model;
+/*package org.example.model;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
@@ -29,4 +29,4 @@ public class SkillsConverter implements AttributeConverter<Skills, String> {
             return null;
         }
     }
-}
+}*/

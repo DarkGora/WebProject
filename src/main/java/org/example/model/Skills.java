@@ -56,7 +56,7 @@ public enum Skills {
     MOCKITO("Mockito", "Testing"),
     TESTNG("TestNG", "Testing"),
     SELENIUM("Selenium", "Testing"),
-    PYTEST("Pytest", "Testing"), // ДОБАВЬТЕ ЭТО
+    PYTEST("Pytest", "Testing"),
     JEST("Jest", "Testing"),
     CYPRESS("Cypress", "Testing"),
     POSTMAN("Postman", "Tools"),
@@ -92,7 +92,6 @@ public enum Skills {
     @JsonValue
     public String getValue() {
         return displayName;
-
     }
 
     public String getDisplayName() {
@@ -132,96 +131,131 @@ public enum Skills {
             return null;
         }
 
-        // Приводим к верхнему регистру и заменяем пробелы и точки
-        String normalizedValue = value.toUpperCase()
-                .replace(" ", "_")
-                .replace(".", "")
-                .replace("-", "_")
-                .trim();
+        String trimmedValue = value.trim();
 
+        System.out.println("Поиск навыка: '" + trimmedValue + "'"); // DEBUG
+
+        // 1. Прямое преобразование (как хранится в БД)
         try {
-            return valueOf(normalizedValue);
+            Skills directMatch = Skills.valueOf(trimmedValue.toUpperCase());
+            System.out.println("Найден прямым преобразованием: " + directMatch); // DEBUG
+            return directMatch;
         } catch (IllegalArgumentException e) {
-            // Дополнительная логика для обработки специальных случаев
-            return handleSpecialCases(value, normalizedValue);
-        }
-    }
-
-    private static Skills handleSpecialCases(String originalValue, String normalizedValue) {
-        // Обработка специальных случаев или синонимов
-        Map<String, Skills> synonyms = Map.ofEntries(
-                // Backend
-                Map.entry("POSTGRESQL", POSTGRESQL),
-                Map.entry("MYSQL", MYSQL),
-                Map.entry("MONGODB", MONGODB),
-                Map.entry("PYTHON", PYTHON),
-                Map.entry("DJANGO", DJANGO),
-                Map.entry("FLASK", FLASK),
-                Map.entry("NODE_JS", NODE_JS),
-                Map.entry("NODEJS", NODE_JS),
-                Map.entry("EXPRESS", EXPRESS),
-
-                // Frontend
-                Map.entry("TYPESCRIPT", TYPESCRIPT),
-                Map.entry("REACT", REACT),
-                Map.entry("ANGULAR", ANGULAR),
-                Map.entry("VUE", VUE),
-                Map.entry("SVELTE", SVELTE),
-
-                // DevOps
-                Map.entry("DOCKER", DOCKER),
-                Map.entry("KUBERNETES", KUBERNETES),
-                Map.entry("AWS", AWS),
-                Map.entry("AZURE", AZURE),
-                Map.entry("GCP", GCP),
-                Map.entry("JENKINS", JENKINS),
-                Map.entry("GITLAB_CI", GITLAB_CI),
-                Map.entry("GITHUB_ACTIONS", GITHUB_ACTIONS),
-
-                // Testing
-                Map.entry("PYTEST", PYTEST),
-                Map.entry("JEST", JEST),
-                Map.entry("CYPRESS", CYPRESS),
-                Map.entry("POSTMAN", POSTMAN),
-                Map.entry("SOAP_UI", SOAP_UI),
-
-                // Mobile
-                Map.entry("ANDROID", ANDROID),
-                Map.entry("KOTLIN", KOTLIN),
-                Map.entry("SWIFT", SWIFT),
-                Map.entry("REACT_NATIVE", REACT_NATIVE),
-                Map.entry("FLUTTER", FLUTTER),
-
-                // Common synonyms
-                Map.entry("TESTING", JUNIT),
-                Map.entry("SPRING_FRAMEWORK", SPRING),
-                Map.entry("SPRINGBOOT", SPRING_BOOT),
-                Map.entry("VUE_JS", VUE),
-                Map.entry("VUEJS", VUE),
-                Map.entry("JS", JAVASCRIPT),
-                Map.entry("TYPESCRIPT", TYPESCRIPT),
-                Map.entry("INTELLIJ", INTELLIJ_IDEA),
-                Map.entry("VSCode", VS_CODE),
-                Map.entry("VSCODE", VS_CODE)
-        );
-
-        // Проверяем по normalizedValue
-        if (synonyms.containsKey(normalizedValue)) {
-            return synonyms.get(normalizedValue);
+            System.out.println("Прямое преобразование не удалось"); // DEBUG
         }
 
-        // Также проверяем по displayName (без учета регистра)
+        // 2. Нормализация строки для поиска по имени enum
+        String normalized = normalizeForEnumSearch(trimmedValue);
+        try {
+            Skills normalizedMatch = Skills.valueOf(normalized);
+            System.out.println("Найден после нормализации '" + normalized + "': " + normalizedMatch); // DEBUG
+            return normalizedMatch;
+        } catch (IllegalArgumentException e) {
+            System.out.println("Поиск по нормализованному имени не удалось: " + normalized); // DEBUG
+        }
+
+        // 3. Поиск по displayName (без учета регистра)
         for (Skills skill : values()) {
-            if (skill.getDisplayName().equalsIgnoreCase(originalValue.trim())) {
+            if (skill.getDisplayName().equalsIgnoreCase(trimmedValue)) {
+                System.out.println("Найден по displayName: " + skill); // DEBUG
                 return skill;
             }
         }
 
-        logUnknownSkill(originalValue);
+        // 4. Поиск по частичному совпадению displayName
+        for (Skills skill : values()) {
+            if (skill.getDisplayName().toLowerCase().contains(trimmedValue.toLowerCase()) ||
+                    trimmedValue.toLowerCase().contains(skill.getDisplayName().toLowerCase())) {
+                System.out.println("Найден по частичному совпадению: " + skill); // DEBUG
+                return skill;
+            }
+        }
+
+        // 5. Специальные случаи для удобства
+        Map<String, Skills> specialCases = Map.ofEntries(
+                Map.entry("spring", SPRING),
+                Map.entry("spring boot", SPRING_BOOT),
+                Map.entry("springboot", SPRING_BOOT),
+                Map.entry("node.js", NODE_JS),
+                Map.entry("nodejs", NODE_JS),
+                Map.entry("vue.js", VUE),
+                Map.entry("vuejs", VUE),
+                Map.entry("vs code", VS_CODE),
+                Map.entry("vscode", VS_CODE),
+                Map.entry("gitlab ci", GITLAB_CI),
+                Map.entry("gitlabci", GITLAB_CI),
+                Map.entry("github actions", GITHUB_ACTIONS),
+                Map.entry("githubactions", GITHUB_ACTIONS),
+                Map.entry("react native", REACT_NATIVE),
+                Map.entry("reactnative", REACT_NATIVE),
+                Map.entry("apache spark", APACHE_SPARK),
+                Map.entry("apachespark", APACHE_SPARK),
+                Map.entry("google cloud", GCP),
+                Map.entry("googlecloud", GCP),
+                Map.entry("postgresql", POSTGRESQL),
+                Map.entry("postgres", POSTGRESQL),
+                Map.entry("mysql", MYSQL),
+                Map.entry("mongodb", MONGODB),
+                Map.entry("intellij idea", INTELLIJ_IDEA),
+                Map.entry("intellij", INTELLIJ_IDEA),
+                Map.entry("pytest", PYTEST),
+                Map.entry("soapui", SOAP_UI),
+                Map.entry("soap ui", SOAP_UI)
+        );
+
+        String lowerValue = trimmedValue.toLowerCase();
+        Skills specialCase = specialCases.get(lowerValue);
+        if (specialCase != null) {
+            System.out.println("Найден в specialCases: " + specialCase); // DEBUG
+            return specialCase;
+        }
+
+        System.out.println("Навык не найден: '" + trimmedValue + "'"); // DEBUG
         return null;
     }
-    private static void logUnknownSkill(String skillValue) {
-        // Логируем неизвестный навык для отладки
-        System.err.println("Предупреждение: Неизвестный навык '" + skillValue + "'");
+
+    private static String normalizeForEnumSearch(String value) {
+        return value.toUpperCase()
+                .replace(" ", "_")
+                .replace(".", "")
+                .replace("-", "_")
+                .replace("__", "_") // Убираем двойные подчеркивания
+                .trim();
+    }
+
+    // Метод для отладки - показывает все доступные навыки
+    public static void printAllSkills() {
+        System.out.println("=== ДОСТУПНЫЕ НАВЫКИ ===");
+        for (Skills skill : values()) {
+            System.out.println(skill.name() + " -> \"" + skill.getDisplayName() + "\" (" + skill.getCategory() + ")");
+        }
+        System.out.println("========================");
+    }
+
+    // Метод для поиска по любому возможному варианту (самый агрессивный поиск)
+    public static Skills findAny(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String trimmed = value.trim().toLowerCase();
+
+        // Пробуем все возможные варианты
+        for (Skills skill : values()) {
+            // Сравниваем с name (верхний регистр)
+            if (skill.name().toLowerCase().equals(trimmed)) {
+                return skill;
+            }
+            // Сравниваем с displayName
+            if (skill.getDisplayName().toLowerCase().equals(trimmed)) {
+                return skill;
+            }
+            // Сравниваем с нормализованным name
+            if (normalizeForEnumSearch(skill.name()).toLowerCase().equals(trimmed)) {
+                return skill;
+            }
+        }
+
+        return fromString(value);
     }
 }
