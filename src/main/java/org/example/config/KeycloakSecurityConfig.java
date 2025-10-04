@@ -19,8 +19,12 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,6 +80,7 @@ public class KeycloakSecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
+                        .accessDeniedHandler(accessDeniedHandler()) // обработчик отказа в доступе
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -88,6 +93,20 @@ public class KeycloakSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
+
+    // ДОБАВЛЕНО: Обработчик для перенаправления на /access-denied
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return new AccessDeniedHandler() {
+            @Override
+            public void handle(HttpServletRequest request, HttpServletResponse response,
+                               org.springframework.security.access.AccessDeniedException accessDeniedException)
+                    throws IOException {
+                response.sendRedirect("/access-denied");
+            }
+        };
+    }
+
     @Bean
     public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
         final OidcUserService delegate = new OidcUserService();
@@ -200,7 +219,6 @@ public class KeycloakSecurityConfig {
                 }
             }
         }
-
 
         if (roles.isEmpty()) {
             System.out.println("No roles found in standard locations, searching all claims...");
