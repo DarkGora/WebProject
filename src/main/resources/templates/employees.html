@@ -594,6 +594,11 @@
                     <li><h6 class="dropdown-header">Учетная запись</h6></li>
                     <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Профиль</a></li>
                     <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Настройки</a></li>
+                    <div sec:authorize="hasRole('resume.admin')">
+                        <a href="/admin/deleted" class="btn btn-outline-warning">
+                            Архив сотрудников
+                        </a>
+                    </div>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form th:action="@{/logout}" method="post" class="d-inline">
@@ -1471,8 +1476,7 @@
                              style="max-width: 150px; height: auto;"
                              onerror="this.src='/images/default.jpg'"
                              alt="${employee.name || 'Фото сотрудника'}"
-                             tabindex="0"  <!-- Делаем фокусируемым для trap -->
-                             role="img">
+                             tabindex="0"
                         <h4 class="mb-2" id="employeeName">${employee.name || 'Не указано'}</h4>
                         <p class="text-muted mb-2">${employee.position || 'Должность не указана'}</p>
                         <span class="badge ${employee.active ? 'bg-success' : 'bg-secondary'} fs-6">

@@ -37,4 +37,7 @@ public interface EmployeeRepository {
     void saveReview(Review review);
     List<Review> findReviewsByEmployeeId(Long employeeId);
     long countByNameContaining(String name);
+    List<Employee> findByDeletedTrue();
+    List<Employee> findActiveByNameContainingPaginated(String name, int offset, int limit);
+    List<Employee> findAllActivePaginated(int offset, int limit);
 }

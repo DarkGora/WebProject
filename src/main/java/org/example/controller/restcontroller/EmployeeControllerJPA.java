@@ -1,6 +1,6 @@
-package org.example.restcontroller;
+package org.example.controller.restcontroller;
 
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 import org.example.request.CreateEmployeeRequest;
 import org.example.service.EmployeeServiceJPA;
 import io.swagger.v3.oas.annotations.Operation;

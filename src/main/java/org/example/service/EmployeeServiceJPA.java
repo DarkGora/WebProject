@@ -3,7 +3,7 @@ package org.example.service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 import org.example.mappers.EmployeeMapper;
 import org.example.model.Employee;
 import org.example.repository.EmployeeRepositoryDto;

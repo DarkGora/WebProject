@@ -9,13 +9,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"skills", "educations"})
+@ToString(exclude = {"skills", "educations", "reviews"})
 @EqualsAndHashCode(of = {"id", "email"})
 @Entity
 @Table(name = "employees")
@@ -58,8 +59,22 @@ public class Employee {
     @Column(name = "about")
     private String about;
 
+    // === SOFT DELETE ФУНКЦИОНАЛЬНОСТЬ ===
+    @Column(name = "deleted", nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private String deletedBy; // Кто удалил (можно хранить username)
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @Size(max = 255, message = "Путь к фото не должен превышать 255 символов")
     @Column(name = "photo_path")
@@ -87,26 +102,190 @@ public class Employee {
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Education> educations = new ArrayList<>();
 
+    @Valid
+    @Builder.Default
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Review> reviews = new ArrayList<>();
+
+    // === МЕТОДЫ ЖИЗНЕННОГО ЦИКЛА ===
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // === МЕТОДЫ ДЛЯ SOFT DELETE ===
+
+    /**
+     * Мягкое удаление сотрудника
+     */
+    public void softDelete() {
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        this.active = false; // Деактивируем при удалении
+    }
+
+    /**
+     * Мягкое удаление с указанием кто удалил
+     */
+    public void softDelete(String deletedBy) {
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+        this.deletedBy = deletedBy;
+        this.active = false;
+    }
+
+    /**
+     * Восстановление сотрудника
+     */
+    public void restore() {
+        this.deleted = false;
+        this.deletedAt = null;
+        this.deletedBy = null;
+        this.active = true; // Активируем при восстановлении
+    }
+
+    /**
+     * Проверка, удален ли сотрудник
+     */
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    /**
+     * Получение времени удаления
+     */
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    /**
+     * Получение информации о том, кто удалил
+     */
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    // === БИЗНЕС-МЕТОДЫ ===
+
+    /**
+     * Проверка, активен ли сотрудник (не удален и активен)
+     */
+    public boolean isActiveEmployee() {
+        return !deleted && active;
+    }
+
+    /**
+     * Получение статуса сотрудника для отображения
+     */
+    public String getStatus() {
+        if (deleted) {
+            return "Удален";
+        } else if (!active) {
+            return "Неактивен";
+        } else {
+            return "Активен";
+        }
+    }
+
+    /**
+     * Получение времени последнего изменения
+     */
+    public LocalDateTime getLastModified() {
+        return updatedAt != null ? updatedAt : createdAt;
     }
 
     public void addSkill(Skills skill) {
+        if (this.skills == null) {
+            this.skills = new HashSet<>();
+        }
         this.skills.add(skill);
     }
 
     public void removeSkill(Skills skill) {
-        this.skills.remove(skill);
+        if (this.skills != null) {
+            this.skills.remove(skill);
+        }
     }
 
     public void addEducation(Education education) {
+        if (this.educations == null) {
+            this.educations = new ArrayList<>();
+        }
         education.setEmployee(this);
         this.educations.add(education);
     }
 
     public void removeEducation(Education education) {
-        this.educations.remove(education);
-        education.setEmployee(null);
+        if (this.educations != null) {
+            this.educations.remove(education);
+            education.setEmployee(null);
+        }
+    }
+
+    public void addReview(Review review) {
+        if (this.reviews == null) {
+            this.reviews = new ArrayList<>();
+        }
+        review.setEmployee(this);
+        this.reviews.add(review);
+    }
+
+    // === ВАЛИДАЦИОННЫЕ МЕТОДЫ ===
+
+    /**
+     * Проверка возможности редактирования
+     */
+    public boolean isEditable() {
+        return !deleted;
+    }
+
+    /**
+     * Проверка возможности удаления
+     */
+    public boolean isDeletable() {
+        return !deleted;
+    }
+
+    /**
+     * Проверка возможности восстановления
+     */
+    public boolean isRestorable() {
+        return deleted;
+    }
+
+    // === МЕТОДЫ ДЛЯ ОТОБРАЖЕНИЯ ===
+
+    /**
+     * Получение пути к фото с fallback на default
+     */
+    public String getDisplayPhotoPath() {
+        return (photoPath != null && !photoPath.trim().isEmpty()) ?
+                photoPath : "/images/default.jpg";
+    }
+
+    /**
+     * Получение короткой информации о сотруднике
+     */
+    public String getShortInfo() {
+        return String.format("%s - %s (%s)", name, position, department);
+    }
+
+    /**
+     * Получение основных навыков в виде строки
+     */
+    public String getSkillsAsString() {
+        if (skills == null || skills.isEmpty()) {
+            return "Нет навыков";
+        }
+        return skills.stream()
+                .map(Skills::getDisplayName)
+                .collect(Collectors.joining(", "));
     }
 }

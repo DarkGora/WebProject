@@ -31,7 +31,7 @@ public class EmployeeService {
             log.warn("Некорректные параметры пагинации: offset={}, limit={}", offset, limit);
             throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
         }
-        return employeeRepository.findAllPaginated(offset, limit);
+        return employeeRepository.findAllActivePaginated(offset, limit);
     }
 
     // === НОВЫЕ МЕТОДЫ ДЛЯ ФИЛЬТРАЦИИ ===
@@ -47,36 +47,98 @@ public class EmployeeService {
             throw new IllegalArgumentException("Offset должен быть >= 0, limit > 0");
         }
 
-        // Преобразуем skill из строки в enum, если нужно
-        Skills skillEnum = null;
+        // Обработка skill с безопасной обработкой ошибок
+        String skillEnumName = null;
         if (skill != null && !skill.isBlank()) {
-            skillEnum = Skills.fromString(skill);
-            if (skillEnum == null) {
-                log.warn("Неизвестный навык: {}", skill);
-                // Возвращаем пустой список или обрабатываем иначе
+            try {
+                Skills skillEnum = Skills.fromString(skill);
+                if (skillEnum != null) {
+                    skillEnumName = skillEnum.name();
+                } else {
+                    log.warn("Неизвестный навык: '{}'. Фильтрация по этому навыку будет пропущена.", skill);
+                    // Возвращаем пустой список, так как фильтр по навыку не может быть применен
+                    return List.of();
+                }
+            } catch (Exception e) {
+                log.warn("Ошибка при обработке навыка '{}': {}. Фильтрация по навыку пропущена.",
+                        skill, e.getMessage());
                 return List.of();
             }
         }
 
+        // Категория временно игнорируется, так как она вызывает проблемы в запросах
+        if (category != null && !category.isBlank()) {
+            log.info("Фильтрация по категории временно отключена: {}", category);
+        }
+
         Pageable pageable = PageRequest.of(offset / limit, limit);
         Page<Employee> page = employeeRepositoryJPA.findWithFilters(
-                name, category, skillEnum != null ? skillEnum.name() : null,
-                departments, positions, active, pageable
+                name, skillEnumName,
+                departments, positions, active, false, pageable
         );
 
         return page.getContent();
     }
-
     @Transactional(readOnly = true)
     public long countWithFilters(String name, String category, String skill,
                                  List<String> departments, List<String> positions, Boolean active) {
-        return employeeRepositoryJPA.countWithFilters(name, category, skill, departments, positions, active);
+        // Обработка skill для count метода
+        String skillEnumName = null;
+        if (skill != null && !skill.isBlank()) {
+            Skills skillEnum = Skills.fromString(skill);
+            if (skillEnum != null) {
+                skillEnumName = skillEnum.name();
+            } else {
+                // Если навык неизвестен, возвращаем 0
+                return 0;
+            }
+        }
+
+        // Категория временно игнорируется
+        if (category != null && !category.isBlank()) {
+            log.info("Подсчет по категории временно отключен: {}", category);
+        }
+
+        return employeeRepositoryJPA.countWithFilters(name, skillEnumName,
+                departments, positions, active, false);
     }
 
+    // Обновите также метод countActiveWithFilters
     @Transactional(readOnly = true)
     public long countActiveWithFilters(String name, String category, String skill,
                                        List<String> departments, List<String> positions) {
-        return employeeRepositoryJPA.countWithFilters(name, category, skill, departments, positions, true);
+        return countWithFilters(name, category, skill, departments, positions, true);
+    }
+// === НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С УДАЛЕННЫМИ СОТРУДНИКАМИ ===
+
+    @Transactional(readOnly = true)
+    public List<Employee> findDeletedEmployees() {
+        log.debug("Поиск всех удаленных сотрудников");
+        return employeeRepositoryJPA.findByDeletedTrue();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Employee> findDeletedEmployeesWithFilters(String name, List<String> departments,
+                                                          List<String> positions) {
+        log.debug("Фильтрация удаленных сотрудников: name={}, departments={}, positions={}",
+                name, departments, positions);
+
+        Pageable pageable = PageRequest.of(0, 100); // или нужная пагинация
+        Page<Employee> page = employeeRepositoryJPA.findDeletedWithFilters(
+                name, departments, positions, pageable
+        );
+        return page.getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public long countDeletedEmployees() {
+        return employeeRepositoryJPA.countByDeletedTrue();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Employee> findDeletedById(Long id) {
+        if (id == null) throw new IllegalArgumentException("ID не может быть null");
+        return employeeRepositoryJPA.findByIdAndDeletedTrue(id);
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +166,7 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public Optional<Employee> findById(Long id) {
         if (id == null) throw new IllegalArgumentException("ID не может быть null");
-        return employeeRepository.findById(id);
+        return employeeRepositoryJPA.findByIdAndDeletedFalse(id);
     }
 
     @Transactional
@@ -133,9 +195,30 @@ public class EmployeeService {
     public void delete(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
-        employeeRepository.delete(employee);
-    }
 
+        if (employee.isDeleted()) {
+            throw new IllegalArgumentException("Сотрудник уже удален");
+        }
+
+        employee.setDeleted(true);
+        employee.setDeletedAt(LocalDateTime.now());
+        employeeRepository.save(employee);
+        log.info("Сотрудник ID {} перемещен в архив", id);
+    }
+    @Transactional
+    public void restore(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        if (!employee.isDeleted()) {
+            throw new IllegalArgumentException("Сотрудник не был удален");
+        }
+
+        employee.setDeleted(false);
+        employee.setDeletedAt(null);
+        employeeRepository.save(employee);
+        log.info("Сотрудник ID {} восстановлен из архива", id);
+    }
     // === Навыки (Skills) - ИСПРАВЛЕННЫЕ МЕТОДЫ ===
 
     @Transactional
@@ -244,19 +327,38 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public boolean existsById(Long id) {
-        return employeeRepository.existsById(id);
+        return employeeRepositoryJPA.existsByIdAndDeletedFalse(id);
     }
 
     @Transactional(readOnly = true)
     public long countByNameContaining(String name) {
         if (name == null || name.isBlank()) {
-            return employeeRepository.count();
+            return employeeRepositoryJPA.countByDeletedFalse();
         }
-        return employeeRepository.countByNameContaining(name);
+        return employeeRepositoryJPA.countByNameContainingAndDeletedFalse(name);
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveEmployees() {
+        return employeeRepositoryJPA.countByDeletedFalse();
+    }
+
+    @Transactional
+    public void permanentDelete(Long id) {
+        Employee employee = employeeRepositoryJPA.findByIdAndDeletedTrue(id)
+                .orElseThrow(() -> new IllegalArgumentException("Удаленный сотрудник не найден"));
+
+        // Сначала удаляем связанные записи
+        educationRepository.deleteByEmployeeId(id);
+        reviewRepository.deleteByEmployeeId(id);
+
+        // Затем удаляем сотрудника
+        employeeRepository.delete(employee);
+        log.info("Сотрудник ID {} полностью удален из системы", id);
     }
 
     @Transactional(readOnly = true)
     public List<Employee> findByNameContaining(String name, int offset, int limit) {
-        return employeeRepository.findByNameContainingPaginated(name, offset, limit);
+        return employeeRepository.findActiveByNameContainingPaginated(name, offset, limit);
     }
 }

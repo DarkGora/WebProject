@@ -1,15 +1,15 @@
-package org.example.restcontroller;
+package org.example.controller.restcontroller;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.example.dto.CallbackRequest;
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.CallbackRequest;
+import org.example.model.dto.EmployeeDto;
 import org.example.model.Skills;
 import org.example.request.CreateEmployeeRequest;
 import org.example.fileFabrica.FileFormat;
-import org.example.dto.SentFileRequest;
+import org.example.model.dto.SentFileRequest;
 import org.example.service.EmailService;
 import org.example.service.EmployeeServiceJPA;
 import org.example.service.FileService;

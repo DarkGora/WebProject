@@ -10,10 +10,7 @@ import org.example.model.Review;
 import org.example.model.Skills;
 import org.example.service.EmployeeService;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -198,7 +195,10 @@ public class EmployeeController {
         try {
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-
+            if (employee.isDeleted()) {
+                redirect.addFlashAttribute("error", "Сотрудник был удален");
+                return "redirect:/";
+            }
             if (employee.getPhotoPath() != null) {
                 Path filePath = Paths.get(UPLOAD_DIR, employee.getPhotoPath().replace("/images/", ""));
                 if (!Files.exists(filePath)) {
@@ -265,16 +265,17 @@ public class EmployeeController {
     }
     @PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/delete/{id}")
-    public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
+    public String deleteEmployee(@PathVariable Long id,
+                                 @AuthenticationPrincipal OidcUser user,
+                                 RedirectAttributes redirect) {
         try {
-            log.info("Удаление сотрудника с ID: {} пользователем с ролью ADMIN", id);
             Employee employee = employeeService.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-            if (employee.getPhotoPath() != null) {
-                deleteFile(employee.getPhotoPath());
-            }
-            employeeService.delete(id);
-            redirect.addFlashAttribute("success", "Сотрудник успешно удалён");
+                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+            employee.softDelete(user.getPreferredUsername()); // Сохраняем кто удалил
+            employeeService.save(employee, null); // Сохраняем изменения
+
+            redirect.addFlashAttribute("success", "Сотрудник перемещен в архив");
             return "redirect:/";
         } catch (IllegalArgumentException e) {
             log.warn("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
@@ -284,6 +285,38 @@ public class EmployeeController {
             log.error("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
             redirect.addFlashAttribute("error", "Ошибка при удалении сотрудника");
             return "redirect:/";
+        }
+    }
+    @PreAuthorize("hasRole('resume.admin')")
+    @PostMapping("/employee/restore/{id}")
+    public String restoreEmployee(@PathVariable Long id, RedirectAttributes redirect) {
+        try {
+            log.info("Восстановление сотрудника с ID: {}", id);
+            employeeService.restore(id);
+            redirect.addFlashAttribute("success", "Сотрудник успешно восстановлен");
+            return "redirect:/employee/" + id;
+        } catch (IllegalArgumentException e) {
+            log.warn("Ошибка при восстановлении сотрудника с ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/deleted";
+        } catch (Exception e) {
+            log.error("Ошибка при восстановлении сотрудника с ID {}: {}", id, e.getMessage());
+            redirect.addFlashAttribute("error", "Ошибка при восстановлении сотрудника");
+            return "redirect:/admin/deleted";
+        }
+    }
+    @PreAuthorize("hasRole('resume.admin')")
+    @GetMapping("/admin/deleted")
+    public String viewDeletedEmployees(Model model) {
+        try {
+            List<Employee> deletedEmployees = employeeService.findDeletedEmployees();
+            model.addAttribute("deletedEmployees", deletedEmployees);
+            model.addAttribute("totalDeleted", deletedEmployees.size());
+            return "deleted-employees";
+        } catch (Exception e) {
+            log.error("Ошибка при загрузке архива сотрудников: {}", e.getMessage(), e);
+            model.addAttribute("error", "Ошибка при загрузке архива");
+            return "deleted-employees";
         }
     }
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
