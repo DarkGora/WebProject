@@ -25,6 +25,134 @@ public class EmployeeService {
     private final ReviewRepository reviewRepository;
     private final EmployeeRepositoryJPA employeeRepositoryJPA;
 
+    // === ОСНОВНЫЕ ОПЕРАЦИИ СОХРАНЕНИЯ ===
+
+    @Transactional
+    public Employee create(@NotNull @Valid Employee employee, String photoPath) {
+        log.info("Создание нового сотрудника: {}", employee.getName());
+
+        Objects.requireNonNull(employee, "Сотрудник не может быть null");
+
+        // Установка фото если есть
+        if (photoPath != null) {
+            employee.setPhotoPath(photoPath);
+        }
+
+        // Установка даты создания
+        if (employee.getCreatedAt() == null) {
+            employee.setCreatedAt(LocalDateTime.now());
+        }
+
+        // Сброс флага удаления при создании
+        employee.setDeleted(false);
+        employee.setDeletedAt(null);
+        employee.setDeletedBy(null);
+
+        Employee saved = employeeRepository.save(employee);
+        log.debug("Создан сотрудник ID: {}", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Employee update(@NotNull @Valid Employee employee) {
+        log.info("Обновление сотрудника ID: {}", employee.getId());
+
+        Objects.requireNonNull(employee, "Сотрудник не может быть null");
+        Objects.requireNonNull(employee.getId(), "ID сотрудника не может быть null");
+
+        // Проверяем существование
+        if (!employeeRepository.existsById(employee.getId())) {
+            throw new IllegalArgumentException("Сотрудник с ID " + employee.getId() + " не найден");
+        }
+
+        Employee saved = employeeRepository.save(employee);
+        log.debug("Обновлен сотрудник ID: {}", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Employee updateWithPhoto(Long id, @NotNull @Valid Employee employeeDetails, String photoPath) {
+        log.info("Обновление сотрудника ID: {} с фото", id);
+
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        // Обновляем поля
+        employee.setName(employeeDetails.getName());
+        employee.setEmail(employeeDetails.getEmail());
+        employee.setPosition(employeeDetails.getPosition());
+        employee.setDepartment(employeeDetails.getDepartment());
+        employee.setPhoneNumber(employeeDetails.getPhoneNumber());
+        employee.setActive(employeeDetails.isActive());
+
+        // Обновляем фото если передано новое
+        if (photoPath != null) {
+            employee.setPhotoPath(photoPath);
+        }
+
+        Employee saved = employeeRepository.save(employee);
+        log.debug("Обновлен сотрудник ID: {} с фото", saved.getId());
+        return saved;
+    }
+
+    // === СПЕЦИАЛЬНЫЕ ОПЕРАЦИИ ===
+
+    @Transactional
+    public Employee softDelete(Long id, String deletedBy) {
+        log.info("Мягкое удаление сотрудника ID: {}, пользователем: {}", id, deletedBy);
+
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        if (employee.isDeleted()) {
+            throw new IllegalArgumentException("Сотрудник уже удален");
+        }
+
+        employee.softDelete(deletedBy);
+        Employee saved = employeeRepository.save(employee);
+        log.debug("Сотрудник ID: {} перемещен в архив", id);
+        return saved;
+    }
+
+    @Transactional
+    public Employee restore(Long id) {
+        log.info("Восстановление сотрудника ID: {}", id);
+
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        if (!employee.isDeleted()) {
+            throw new IllegalArgumentException("Сотрудник не был удален");
+        }
+
+        employee.setDeleted(false);
+        employee.setDeletedAt(null);
+        employee.setDeletedBy(null);
+
+        Employee saved = employeeRepository.save(employee);
+        log.debug("Сотрудник ID: {} восстановлен из архива", id);
+        return saved;
+    }
+
+    // === DEPRECATED - для обратной совместимости ===
+
+
+    @Deprecated
+    @Transactional
+    public Employee save(@NotNull @Valid Employee employee, String photoPath) {
+        if (employee.getId() == null) {
+            return create(employee, photoPath);
+        } else {
+            if (photoPath != null) {
+                return updateWithPhoto(employee.getId(), employee, photoPath);
+            } else {
+                return update(employee);
+            }
+        }
+    }
+
+    // === МЕТОДЫ ПОИСКА И ФИЛЬТРАЦИИ ===
+
     @Transactional(readOnly = true)
     public List<Employee> findAll(int offset, int limit) {
         if (offset < 0 || limit <= 0) {
@@ -33,8 +161,6 @@ public class EmployeeService {
         }
         return employeeRepository.findAllActivePaginated(offset, limit);
     }
-
-    // === НОВЫЕ МЕТОДЫ ДЛЯ ФИЛЬТРАЦИИ ===
 
     @Transactional(readOnly = true)
     public List<Employee> findWithFilters(int offset, int limit, String name, String category,
@@ -56,7 +182,6 @@ public class EmployeeService {
                     skillEnumName = skillEnum.name();
                 } else {
                     log.warn("Неизвестный навык: '{}'. Фильтрация по этому навыку будет пропущена.", skill);
-                    // Возвращаем пустой список, так как фильтр по навыку не может быть применен
                     return List.of();
                 }
             } catch (Exception e) {
@@ -79,6 +204,7 @@ public class EmployeeService {
 
         return page.getContent();
     }
+
     @Transactional(readOnly = true)
     public long countWithFilters(String name, String category, String skill,
                                  List<String> departments, List<String> positions, Boolean active) {
@@ -89,7 +215,6 @@ public class EmployeeService {
             if (skillEnum != null) {
                 skillEnumName = skillEnum.name();
             } else {
-                // Если навык неизвестен, возвращаем 0
                 return 0;
             }
         }
@@ -103,13 +228,13 @@ public class EmployeeService {
                 departments, positions, active, false);
     }
 
-    // Обновите также метод countActiveWithFilters
     @Transactional(readOnly = true)
     public long countActiveWithFilters(String name, String category, String skill,
                                        List<String> departments, List<String> positions) {
         return countWithFilters(name, category, skill, departments, positions, true);
     }
-// === НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С УДАЛЕННЫМИ СОТРУДНИКАМИ ===
+
+    // === МЕТОДЫ ДЛЯ РАБОТЫ С УДАЛЕННЫМИ СОТРУДНИКАМИ ===
 
     @Transactional(readOnly = true)
     public List<Employee> findDeletedEmployees() {
@@ -123,7 +248,7 @@ public class EmployeeService {
         log.debug("Фильтрация удаленных сотрудников: name={}, departments={}, positions={}",
                 name, departments, positions);
 
-        Pageable pageable = PageRequest.of(0, 100); // или нужная пагинация
+        Pageable pageable = PageRequest.of(0, 100);
         Page<Employee> page = employeeRepositoryJPA.findDeletedWithFilters(
                 name, departments, positions, pageable
         );
@@ -151,7 +276,7 @@ public class EmployeeService {
         return employeeRepositoryJPA.findDistinctPositions();
     }
 
-    // === СУЩЕСТВУЮЩИЕ МЕТОДЫ ===
+    // === ОСНОВНЫЕ МЕТОДЫ ПОИСКА ===
 
     @Transactional(readOnly = true)
     public Page<Employee> findAllWithFilters(String name, String position, String department, Pageable pageable) {
@@ -169,57 +294,12 @@ public class EmployeeService {
         return employeeRepositoryJPA.findByIdAndDeletedFalse(id);
     }
 
-    @Transactional
-    public Employee save(@NotNull @Valid Employee employee, String photoPath) {
-        Objects.requireNonNull(employee, "Сотрудник не может быть null");
-        if (photoPath != null) employee.setPhotoPath(photoPath);
-        if (employee.getCreatedAt() == null) employee.setCreatedAt(LocalDateTime.now());
-        return employeeRepository.save(employee);
+    @Transactional(readOnly = true)
+    public List<Employee> findByNameContaining(String name, int offset, int limit) {
+        return employeeRepository.findActiveByNameContainingPaginated(name, offset, limit);
     }
 
-    @Transactional
-    public Employee update(Long id, @NotNull @Valid Employee employeeDetails, String photoPath) {
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
-
-        employee.setName(employeeDetails.getName());
-        employee.setEmail(employeeDetails.getEmail());
-        employee.setPosition(employeeDetails.getPosition());
-        employee.setDepartment(employeeDetails.getDepartment());
-        if (photoPath != null) employee.setPhotoPath(photoPath);
-
-        return employeeRepository.save(employee);
-    }
-
-    @Transactional
-    public void delete(Long id) {
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
-
-        if (employee.isDeleted()) {
-            throw new IllegalArgumentException("Сотрудник уже удален");
-        }
-
-        employee.setDeleted(true);
-        employee.setDeletedAt(LocalDateTime.now());
-        employeeRepository.save(employee);
-        log.info("Сотрудник ID {} перемещен в архив", id);
-    }
-    @Transactional
-    public void restore(Long id) {
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
-
-        if (!employee.isDeleted()) {
-            throw new IllegalArgumentException("Сотрудник не был удален");
-        }
-
-        employee.setDeleted(false);
-        employee.setDeletedAt(null);
-        employeeRepository.save(employee);
-        log.info("Сотрудник ID {} восстановлен из архива", id);
-    }
-    // === Навыки (Skills) - ИСПРАВЛЕННЫЕ МЕТОДЫ ===
+    // === НАВЫКИ (Skills) ===
 
     @Transactional
     public void addSkill(Long employeeId, String skillName) {
@@ -234,9 +314,9 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
 
-        // Используем метод addSkill из сущности Employee
         employee.addSkill(skill);
         employeeRepository.save(employee);
+        log.debug("Добавлен навык '{}' сотруднику ID: {}", skillName, employeeId);
     }
 
     @Transactional
@@ -253,9 +333,9 @@ public class EmployeeService {
             throw new IllegalArgumentException("У сотрудника нет навыка: " + skillName);
         }
 
-        // Используем метод removeSkill из сущности Employee
         employee.removeSkill(skill);
         employeeRepository.save(employee);
+        log.debug("Удален навык '{}' у сотрудника ID: {}", skillName, employeeId);
     }
 
     @Transactional(readOnly = true)
@@ -263,13 +343,11 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
 
-        // Преобразуем Skills в строки (displayName)
         return employee.getSkills().stream()
                 .map(Skills::getDisplayName)
                 .collect(Collectors.toSet());
     }
 
-    // Альтернативный метод для получения Skills как enum'ов
     @Transactional(readOnly = true)
     public Set<Skills> getSkillsAsEnum(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
@@ -277,7 +355,7 @@ public class EmployeeService {
         return employee.getSkills();
     }
 
-    // === Образование (Educations) ===
+    // === ОБРАЗОВАНИЕ (Educations) ===
 
     @Transactional
     public void addEducation(Long employeeId, Education education) {
@@ -285,6 +363,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
         education.setEmployee(employee);
         educationRepository.save(education);
+        log.debug("Добавлено образование сотруднику ID: {}", employeeId);
     }
 
     @Transactional(readOnly = true)
@@ -292,7 +371,7 @@ public class EmployeeService {
         return educationRepository.findByEmployeeId(employeeId);
     }
 
-    // === Отзывы (Reviews) ===
+    // === ОТЗЫВЫ (Reviews) ===
 
     @Transactional
     public Review saveReview(Review review) {
@@ -304,7 +383,9 @@ public class EmployeeService {
                 .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
 
         review.setEmployee(employee);
-        return reviewRepository.save(review);
+        Review saved = reviewRepository.save(review);
+        log.debug("Сохранен отзыв для сотрудника ID: {}", employee.getId());
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -318,7 +399,7 @@ public class EmployeeService {
         return avgRating != null ? avgRating : 0.0;
     }
 
-    // === Дополнительные методы ===
+    // === ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ===
 
     @Transactional(readOnly = true)
     public long count() {
@@ -357,8 +438,15 @@ public class EmployeeService {
         log.info("Сотрудник ID {} полностью удален из системы", id);
     }
 
-    @Transactional(readOnly = true)
-    public List<Employee> findByNameContaining(String name, int offset, int limit) {
-        return employeeRepository.findActiveByNameContainingPaginated(name, offset, limit);
+    @Deprecated
+    @Transactional
+    public Employee update(Long id, @NotNull @Valid Employee employeeDetails, String photoPath) {
+        return updateWithPhoto(id, employeeDetails, photoPath);
+    }
+
+    @Deprecated
+    @Transactional
+    public void delete(Long id) {
+        softDelete(id, "system");
     }
 }
