@@ -13,7 +13,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,10 +23,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +37,12 @@ import java.util.stream.Collectors;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class KeycloakSecurityConfig {
+
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    public KeycloakSecurityConfig(ClientRegistrationRepository clientRegistrationRepository) {
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -69,7 +80,7 @@ public class KeycloakSecurityConfig {
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true) // После логина на страницу сотрудников
+                        .defaultSuccessUrl("/", true)
                         .failureUrl("/login?error=true")
                         .userInfoEndpoint(userInfo -> userInfo
                                 .oidcUserService(oidcUserService())
@@ -80,11 +91,11 @@ public class KeycloakSecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login"))
-                        .accessDeniedHandler(accessDeniedHandler()) // обработчик отказа в доступе
+                        .accessDeniedHandler(accessDeniedHandler())
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout=true")
+                        .logoutSuccessHandler(logoutSuccessHandler()) // Используем кастомный обработчик
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
@@ -94,7 +105,65 @@ public class KeycloakSecurityConfig {
                 .build();
     }
 
-    // ДОБАВЛЕНО: Обработчик для перенаправления на /access-denied
+    // Кастомный обработчик выхода для Keycloak
+    @Bean
+    public LogoutSuccessHandler logoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            if (authentication != null && authentication.getPrincipal() instanceof OidcUser) {
+                // Если пользователь аутентифицирован через OIDC, делаем выход из Keycloak
+                OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
+                String idToken = oidcUser.getIdToken().getTokenValue();
+
+                // URL для выхода из Keycloak
+                String logoutUrl = "http://localhost:8081/realms/resume/protocol/openid-connect/logout" +
+                        "?id_token_hint=" + idToken +
+                        "&post_logout_redirect_uri=" +
+                        URLEncoder.encode("http://localhost:8080/login?logout=true", StandardCharsets.UTF_8);
+
+                // Полностью очищаем сессию
+                request.getSession().invalidate();
+
+                // Перенаправляем на Keycloak logout
+                response.sendRedirect(logoutUrl);
+            } else {
+                // Обычный выход для не-OIDC пользователей
+                request.getSession().invalidate();
+                response.sendRedirect("/login?logout=true");
+            }
+        };
+    }
+
+    // Альтернативный простой обработчик (если нужен fallback)
+    @Bean
+    public LogoutSuccessHandler simpleLogoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            // Всегда инвалидируем сессию
+            request.getSession().invalidate();
+
+            // Если это OIDC пользователь, пытаемся сделать logout из Keycloak
+            if (authentication != null && authentication.getPrincipal() instanceof OidcUser) {
+                try {
+                    OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
+                    String idToken = oidcUser.getIdToken().getTokenValue();
+
+                    String logoutUrl = "http://localhost:8081/realms/resume/protocol/openid-connect/logout" +
+                            "?id_token_hint=" + idToken +
+                            "&post_logout_redirect_uri=" +
+                            URLEncoder.encode("http://localhost:8080/login?logout=true", StandardCharsets.UTF_8);
+
+                    response.sendRedirect(logoutUrl);
+                    return;
+                } catch (Exception e) {
+                    // Если что-то пошло не так, fallback на обычный logout
+                    System.err.println("Keycloak logout failed: " + e.getMessage());
+                }
+            }
+
+            // Обычный редирект
+            response.sendRedirect("/login?logout=true");
+        };
+    }
+
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return new AccessDeniedHandler() {
