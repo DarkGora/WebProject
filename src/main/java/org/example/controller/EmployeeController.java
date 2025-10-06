@@ -9,11 +9,11 @@ import org.example.model.Employee;
 import org.example.model.Review;
 import org.example.model.Skills;
 import org.example.service.EmployeeService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,7 +45,12 @@ public class EmployeeController {
     private static final List<String> ALLOWED_IMAGE_TYPES = List.of("image/jpeg", "image/png", "image/webp");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/home")
+    public String homePage() {
+        return "home";
+    }
+
+    @PreAuthorize("hasAnyRole('resume.user', 'resume.admin', 'resume.client')")
     @GetMapping("/")
     public String listEmployees(
             @RequestParam(defaultValue = "0") int page,
@@ -59,20 +65,22 @@ public class EmployeeController {
         int pageSize = 10;
         try {
             log.debug("Загрузка сотрудников для страницы: {}, размер страницы: {}", page, pageSize);
-            List<Employee> employees = employeeService.findWithFilters(
-                    page * pageSize, pageSize, name, category, skill, department, position, active
-            );
-            long totalEmployees = employeeService.countWithFilters(name, category, skill, department, position, active);
-            long activeEmployees = employeeService.countActiveWithFilters(name, category, skill, department, position);
 
-            int totalPages = (int) Math.ceil((double) totalEmployees / pageSize);
+            // Используем пагинацию через Pageable
+            Pageable pageable = PageRequest.of(page, pageSize);
+            Page<Employee> employeePage = employeeService.findWithFilters(
+                    name, category, skill, department, position, active, pageable
+            );
+
+            long totalEmployees = employeePage.getTotalElements();
+            long activeEmployees = employeeService.countActiveWithFilters(name, category, skill, department, position);
 
             List<String> departments = employeeService.findAllDistinctDepartments();
             List<String> positions = employeeService.findAllDistinctPositions();
 
-            model.addAttribute("employees", employees);
+            model.addAttribute("employees", employeePage.getContent());
             model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("totalPages", employeePage.getTotalPages());
             model.addAttribute("totalEmployees", totalEmployees);
             model.addAttribute("activeEmployees", activeEmployees);
             model.addAttribute("departments", departments);
@@ -95,6 +103,7 @@ public class EmployeeController {
         }
         return "employees";
     }
+
     @ModelAttribute("paginationParams")
     public String getPaginationParams(
             @RequestParam(required = false) String name,
@@ -127,13 +136,16 @@ public class EmployeeController {
 
         return params.toString();
     }
+
     @PreAuthorize("hasRole('resume.admin')")
     @GetMapping("/employee/new")
     public String newEmployee(Model model) {
         model.addAttribute("employee", new Employee());
+        model.addAttribute("allSkills", Skills.values());
         log.debug("Открыта форма для нового сотрудника");
         return "employee-edit";
     }
+
     @PreAuthorize("hasRole('resume.admin')")
     @GetMapping({"/employee/add", "/employee/edit/{id}"})
     public String editEmployee(@PathVariable(required = false) Long id,
@@ -150,6 +162,7 @@ public class EmployeeController {
                 employee = new Employee();
             }
             model.addAttribute("employee", employee);
+            model.addAttribute("allSkills", Skills.values());
             return "employee-edit";
         } catch (IllegalArgumentException e) {
             log.warn("Ошибка при открытии формы сотрудника с ID {}: {}", id, e.getMessage());
@@ -161,6 +174,7 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
+
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/employee/{id}/reviews")
     public String viewEmployeeReviews(@PathVariable Long id, Model model, RedirectAttributes redirect) {
@@ -187,6 +201,7 @@ public class EmployeeController {
             return "redirect:/employee/" + id;
         }
     }
+
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/employee/{id}")
     public String viewEmployee(@PathVariable Long id, Model model, RedirectAttributes redirect) {
@@ -194,16 +209,25 @@ public class EmployeeController {
             Employee employee = employeeService.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
 
+            if (employee.isDeleted()) {
+                redirect.addFlashAttribute("error", "Сотрудник был удален");
+                return "redirect:/";
+            }
+
+            // Проверка существования фото
             if (employee.getPhotoPath() != null) {
                 Path filePath = Paths.get(UPLOAD_DIR, employee.getPhotoPath().replace("/images/", ""));
                 if (!Files.exists(filePath)) {
                     employee.setPhotoPath("/images/default.jpg");
                 }
             }
+
             Review review = new Review();
             review.setEmployee(employee);
+
             log.debug("Инициализация Review для формы: id={}, employee={}",
                     review.getId(), employee.getId());
+
             model.addAttribute("employee", employee);
             model.addAttribute("review", review);
             return "employee-details";
@@ -217,14 +241,18 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
+
     @PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/save")
     public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee,
                                BindingResult result,
                                @RequestParam(value = "photo", required = false) MultipartFile photo,
+                               @RequestParam(value = "selectedSkills", required = false) List<String> selectedSkills,
+                               Model model, // ДОБАВЛЕН ПАРАМЕТР MODEL
                                RedirectAttributes redirect) {
         if (result.hasErrors()) {
             log.debug("Ошибки валидации при сохранении сотрудника: {}", result.getAllErrors());
+            model.addAttribute("allSkills", Skills.values());
             return "employee-edit";
         }
 
@@ -234,17 +262,26 @@ public class EmployeeController {
                 photoPath = storeFile(photo);
             }
 
+            // Обработка навыков
+            if (selectedSkills != null && !selectedSkills.isEmpty()) {
+                Set<Skills> skills = selectedSkills.stream()
+                        .map(Skills::fromString)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+                employee.setSkills(skills);
+            }
+
             Employee savedEmployee;
             if (employee.getId() == null) {
                 log.info("Сохранение нового сотрудника: {}", employee.getName());
-                savedEmployee = employeeService.save(employee, photoPath);
+                savedEmployee = employeeService.create(employee, photoPath);
                 redirect.addFlashAttribute("success", "Сотрудник успешно добавлен");
             } else {
                 log.info("Обновление сотрудника с ID: {}", employee.getId());
                 if (photoPath != null && employee.getPhotoPath() != null) {
                     deleteFile(employee.getPhotoPath());
                 }
-                savedEmployee = employeeService.update(employee.getId(), employee, photoPath);
+                savedEmployee = employeeService.updateWithPhoto(employee.getId(), employee, photoPath);
                 redirect.addFlashAttribute("success", "Сотрудник успешно обновлён");
             }
             return "redirect:/employee/" + savedEmployee.getId();
@@ -258,18 +295,15 @@ public class EmployeeController {
             return "redirect:/employee/" + (employee.getId() != null ? employee.getId() : "new");
         }
     }
+
     @PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/delete/{id}")
-    public String deleteEmployee(@PathVariable Long id, RedirectAttributes redirect) {
+    public String deleteEmployee(@PathVariable Long id,
+                                 @AuthenticationPrincipal OidcUser user,
+                                 RedirectAttributes redirect) {
         try {
-            log.info("Удаление сотрудника с ID: {}", id);
-            Employee employee = employeeService.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден с ID: " + id));
-            if (employee.getPhotoPath() != null) {
-                deleteFile(employee.getPhotoPath());
-            }
-            employeeService.delete(id);
-            redirect.addFlashAttribute("success", "Сотрудник успешно удалён");
+            employeeService.softDelete(id, user.getPreferredUsername());
+            redirect.addFlashAttribute("success", "Сотрудник перемещен в архив");
             return "redirect:/";
         } catch (IllegalArgumentException e) {
             log.warn("Ошибка при удалении сотрудника с ID {}: {}", id, e.getMessage());
@@ -281,6 +315,8 @@ public class EmployeeController {
             return "redirect:/";
         }
     }
+
+
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/search")
     public String searchEmployees(@RequestParam(defaultValue = "") String name,
@@ -289,15 +325,14 @@ public class EmployeeController {
         int pageSize = 10;
         try {
             log.debug("Поиск сотрудников по имени: {}, страница: {}, размер: {}", name, page, pageSize);
-            List<Employee> employees = employeeService.findByNameContaining(name, page * pageSize, pageSize);
 
-            long totalFound = employeeService.countByNameContaining(name);
-            int totalPages = (int) Math.ceil((double) totalFound / pageSize);
+            Pageable pageable = PageRequest.of(page, pageSize);
+            Page<Employee> employeePage = employeeService.findByNameContainingPage(name, pageable);
 
-            model.addAttribute("employees", employees);
+            model.addAttribute("employees", employeePage.getContent());
             model.addAttribute("currentPage", page);
-            model.addAttribute("totalPages", totalPages);
-            model.addAttribute("totalEmployees", totalFound);
+            model.addAttribute("totalPages", employeePage.getTotalPages());
+            model.addAttribute("totalEmployees", employeePage.getTotalElements());
             model.addAttribute("searchName", name);
             model.addAttribute("skillCategories", Skills.getAllCategories());
             return "employees";
@@ -307,6 +342,7 @@ public class EmployeeController {
             return "employees";
         }
     }
+
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @PostMapping("/employee/{id}/review")
     public String addReview(@PathVariable Long id,
@@ -320,6 +356,7 @@ public class EmployeeController {
             redirect.addFlashAttribute("error", "Сотрудник не найден");
             return "redirect:/";
         }
+
         if (review.getEmployee() == null || !review.getEmployee().getId().equals(id)) {
             log.warn("Некорректная связь с сотрудником: получено {}, ожидалось {}",
                     review.getEmployee() != null ? review.getEmployee().getId() : "null", id);
@@ -347,6 +384,7 @@ public class EmployeeController {
         }
         return "redirect:/employee/" + id;
     }
+
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error,
                         @RequestParam(value = "logout", required = false) String logout,
@@ -365,14 +403,16 @@ public class EmployeeController {
 
         return "login";
     }
+
     @GetMapping("/access-denied")
     public String accessDenied() {
         return "access-denied";
     }
+
     @PostMapping("/logout")
-    public String Logout(@AuthenticationPrincipal OidcUser oidcUser,
-                               HttpServletRequest request,
-                               HttpServletResponse response) throws IOException {
+    public String logout(@AuthenticationPrincipal OidcUser oidcUser,
+                         HttpServletRequest request,
+                         HttpServletResponse response) throws IOException {
 
         if (oidcUser != null && oidcUser.getIdToken() != null) {
             String idToken = oidcUser.getIdToken().getTokenValue();
@@ -391,6 +431,7 @@ public class EmployeeController {
         return "redirect:/login";
     }
 
+    // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С ФАЙЛАМИ ===
 
     private String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {

@@ -1,6 +1,6 @@
 package org.example.mappers;
 
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 import org.example.model.Employee;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;

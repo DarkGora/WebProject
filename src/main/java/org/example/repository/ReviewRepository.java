@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findByEmployeeId(Long employeeId);
+    void deleteByEmployeeId(Long employeeId);
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.employee.id = :employeeId")
     Double calculateAverageRating(@Param("employeeId") Long employeeId);

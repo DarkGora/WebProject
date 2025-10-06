@@ -1,5 +1,6 @@
-package org.example.controller;
+package org.example.controller.testapi;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -57,5 +58,19 @@ public class DebugController {
 
         return result;
     }
+    @GetMapping("/api/debug/roles")
+    public ResponseEntity<?> debugRoles(Authentication authentication) {
+        if (authentication != null) {
+            return ResponseEntity.ok(Map.of(
+                    "username", authentication.getName(),
+                    "authorities", authentication.getAuthorities().stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .collect(Collectors.toList()),
+                    "isAdmin", authentication.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_resume.admin"))
+            ));
+        }
+        return ResponseEntity.ok("Not authenticated");
+        }
 }
 

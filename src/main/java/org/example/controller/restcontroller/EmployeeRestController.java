@@ -1,12 +1,11 @@
-package org.example.restcontroller;
+package org.example.controller.restcontroller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.client.methods.HttpPost;
-import org.example.dto.EmployeeQuickViewDTO;
+import org.example.model.dto.EmployeeQuickViewDTO;
 import org.example.model.Employee;
 import org.example.model.Education;
 import org.example.model.Review;

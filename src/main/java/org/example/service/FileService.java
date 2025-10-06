@@ -1,6 +1,6 @@
 package org.example.service;
 
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 import org.example.fileFabrica.FileGenerator;
 import org.example.fileFabrica.FileGeneratorFactory;
 import org.example.fileFabrica.FileFormat;

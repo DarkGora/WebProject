@@ -5,7 +5,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

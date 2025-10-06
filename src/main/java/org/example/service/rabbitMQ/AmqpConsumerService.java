@@ -3,7 +3,7 @@ package org.example.service.rabbitMQ;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.config.RabbitConfig;
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 import org.example.fileFabrica.FileFormat;
 import org.example.service.EmailService;
 import org.example.service.FileService;

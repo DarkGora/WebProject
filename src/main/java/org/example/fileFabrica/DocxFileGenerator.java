@@ -4,7 +4,7 @@ import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.example.dto.EmployeeDto;
+import org.example.model.dto.EmployeeDto;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
