@@ -300,13 +300,6 @@
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* Скелетон-загрузка */
-        .skeleton {
-            background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.1) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: var(--border-radius);
-        }
 
         @keyframes loading {
             0% { background-position: 200% 0; }
@@ -535,17 +528,6 @@
             border-radius: 0 var(--border-radius) var(--border-radius) 0;
         }
 
-        .sortable-ghost {
-            opacity: 0.6;
-            transform: scale(0.98);
-        }
-
-        /* Анимация появления элементов */
-        .animate-delay-1 { animation-delay: 0.1s; }
-        .animate-delay-2 { animation-delay: 0.2s; }
-        .animate-delay-3 { animation-delay: 0.3s; }
-        .animate-delay-4 { animation-delay: 0.4s; }
-        .animate-delay-5 { animation-delay: 0.5s; }
 
         /* Стили для прогресс-бара навыков */
         .skill-progress {

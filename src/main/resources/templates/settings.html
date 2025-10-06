@@ -134,13 +134,25 @@
             font-weight: 400;
         }
 
+        /* ИСПРАВЛЕНО: Стили для тем - выравнивание в строку */
+        .themes-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         .theme-preview {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 12px;
             cursor: pointer;
             border: 3px solid transparent;
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .theme-preview.active {
@@ -159,6 +171,38 @@
 
         .theme-blue {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-green {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .theme-orange {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .theme-preview i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .theme-preview .theme-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .theme-dark .theme-name {
+            color: white;
+        }
+
+        .theme-light .theme-name {
+            color: #333;
+        }
+
+        .theme-blue .theme-name,
+        .theme-green .theme-name,
+        .theme-orange .theme-name {
+            color: white;
         }
 
         .btn {
@@ -364,36 +408,27 @@
                             <h4 style="font-weight: 600;"><i class="bi bi-palette me-2"></i>Тема оформления</h4>
                             <p class="text-muted">Выберите preferred тему интерфейса</p>
 
-                            <div class="row mt-4">
-                                <div class="col-md-4 text-center">
-                                    <div class="theme-preview theme-dark active" data-theme="dark" onclick="selectTheme('dark')">
-                                        <div class="h-100 d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-moon-stars text-white fs-5"></i>
-                                        </div>
-                                    </div>
-                                    <div class="text-center mt-2">
-                                        <small style="font-weight: 500;">Темная</small>
-                                    </div>
+                            <!-- ИСПРАВЛЕНО: Контейнер для тем с правильным выравниванием -->
+                            <div class="themes-container mt-4">
+                                <div class="theme-preview theme-dark active" data-theme="dark" onclick="selectTheme('dark')">
+                                    <i class="bi bi-moon-stars"></i>
+                                    <span class="theme-name">Темная</span>
                                 </div>
-                                <div class="col-md-4 text-center">
-                                    <div class="theme-preview theme-light" data-theme="light" onclick="selectTheme('light')">
-                                        <div class="h-100 d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-sun text-dark fs-5"></i>
-                                        </div>
-                                    </div>
-                                    <div class="text-center mt-2">
-                                        <small style="font-weight: 500;">Светлая</small>
-                                    </div>
+                                <div class="theme-preview theme-light" data-theme="light" onclick="selectTheme('light')">
+                                    <i class="bi bi-sun"></i>
+                                    <span class="theme-name">Светлая</span>
                                 </div>
-                                <div class="col-md-4 text-center">
-                                    <div class="theme-preview theme-blue" data-theme="blue" onclick="selectTheme('blue')">
-                                        <div class="h-100 d-flex align-items-center justify-content-center">
-                                            <i class="bi bi-palette text-white fs-5"></i>
-                                        </div>
-                                    </div>
-                                    <div class="text-center mt-2">
-                                        <small style="font-weight: 500;">Синяя</small>
-                                    </div>
+                                <div class="theme-preview theme-blue" data-theme="blue" onclick="selectTheme('blue')">
+                                    <i class="bi bi-palette"></i>
+                                    <span class="theme-name">Синяя</span>
+                                </div>
+                                <div class="theme-preview theme-green" data-theme="green" onclick="selectTheme('green')">
+                                    <i class="bi bi-tree"></i>
+                                    <span class="theme-name">Зеленая</span>
+                                </div>
+                                <div class="theme-preview theme-orange" data-theme="orange" onclick="selectTheme('orange')">
+                                    <i class="bi bi-fire"></i>
+                                    <span class="theme-name">Оранжевая</span>
                                 </div>
                             </div>
 
@@ -660,12 +695,61 @@
         // Обновляем скрытое поле
         document.getElementById('themeInput').value = theme;
 
-        // Применяем тему немедленно (опционально)
+        // Применяем тему немедленно
         applyTheme(theme);
     }
 
     function applyTheme(theme) {
-        console.log('Applying theme:', theme);
+        // Удаляем предыдущие классы тем
+        document.body.classList.remove('theme-dark', 'theme-light', 'theme-blue', 'theme-green', 'theme-orange');
+
+        // Добавляем класс выбранной темы
+        document.body.classList.add(`theme-${theme}`);
+
+        // Применяем соответствующие стили для темы
+        const root = document.documentElement;
+
+        switch(theme) {
+            case 'dark':
+                root.style.setProperty('--dark-bg', '#1a2035');
+                root.style.setProperty('--darker-bg', '#121726');
+                root.style.setProperty('--text-light', '#f8f9fa');
+                break;
+            case 'light':
+                root.style.setProperty('--dark-bg', '#f8f9fa');
+                root.style.setProperty('--darker-bg', '#e9ecef');
+                root.style.setProperty('--text-light', '#212529');
+                break;
+            case 'blue':
+                root.style.setProperty('--dark-bg', '#1a237e');
+                root.style.setProperty('--darker-bg', '#0d1452');
+                root.style.setProperty('--text-light', '#ffffff');
+                break;
+            case 'green':
+                root.style.setProperty('--dark-bg', '#1b5e20');
+                root.style.setProperty('--darker-bg', '#0d3c10');
+                root.style.setProperty('--text-light', '#ffffff');
+                break;
+            case 'orange':
+                root.style.setProperty('--dark-bg', '#e65100');
+                root.style.setProperty('--darker-bg', '#b23c00');
+                root.style.setProperty('--text-light', '#ffffff');
+                break;
+        }
+
+        console.log('Тема применена:', theme);
+        showToast(`Тема "${getThemeName(theme)}" применена`);
+    }
+
+    function getThemeName(theme) {
+        const themeNames = {
+            'dark': 'Темная',
+            'light': 'Светлая',
+            'blue': 'Синяя',
+            'green': 'Зеленая',
+            'orange': 'Оранжевая'
+        };
+        return themeNames[theme] || theme;
     }
 
     function resetSettings() {
@@ -711,7 +795,9 @@
         document.body.appendChild(toast);
 
         setTimeout(() => {
-            toast.remove();
+            if (toast.parentNode) {
+                toast.remove();
+            }
         }, 3000);
     }
 </script>
