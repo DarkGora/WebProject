@@ -50,14 +50,13 @@ public class ProfileController {
                 model.addAttribute("employee", employee);
             } else {
                 log.warn("Employee not found for email: {}", email);
-                // Создаем временного сотрудника для отладки
                 Employee tempEmployee = createTempEmployee(user);
                 model.addAttribute("employee", tempEmployee);
                 model.addAttribute("warning", "Профиль не найден в базе данных");
             }
 
             model.addAttribute("pageTitle", "Мой профиль");
-            model.addAttribute("oidcUser", user); // Добавляем для отладки
+            model.addAttribute("oidcUser", user);
 
         } catch (Exception e) {
             log.error("Error loading profile: {}", e.getMessage(), e);

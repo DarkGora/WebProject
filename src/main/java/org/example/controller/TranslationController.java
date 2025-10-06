@@ -11,14 +11,18 @@ import org.springframework.web.client.RestTemplate;
 @RequestMapping("/translation")
 public class TranslationController {
 
+    private final RestTemplate restTemplate;
+
+    public TranslationController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @GetMapping
     public ResponseEntity<String> translate(@RequestParam String text) {
         TranslatorProperties properties = new TranslatorProperties();
         properties.setLanguageFrom("ru");
         properties.setLanguageTo("pl");
-        properties.setBaseUrl("https://api.mymemory.translated.net");
-        RestTemplate restTemplate = new RestTemplate();
-        TranslationService service = new TranslationService(properties, restTemplate);
+        TranslationService service = new TranslationService(properties,restTemplate);
         String translation = service.translate(text);
         return ResponseEntity.ok(translation);
     }

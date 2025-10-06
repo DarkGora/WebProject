@@ -316,39 +316,6 @@ public class EmployeeController {
         }
     }
 
-    /*@PreAuthorize("hasRole('resume.admin')")
-    @PostMapping("/employee/restore/{id}")
-    public String restoreEmployee(@PathVariable Long id, RedirectAttributes redirect) {
-        try {
-            log.info("Восстановление сотрудника с ID: {}", id);
-            employeeService.restore(id);
-            redirect.addFlashAttribute("success", "Сотрудник успешно восстановлен");
-            return "redirect:/employee/" + id;
-        } catch (IllegalArgumentException e) {
-            log.warn("Ошибка при восстановлении сотрудника с ID {}: {}", id, e.getMessage());
-            redirect.addFlashAttribute("error", e.getMessage());
-            return "redirect:/admin/deleted";
-        } catch (Exception e) {
-            log.error("Ошибка при восстановлении сотрудника с ID {}: {}", id, e.getMessage());
-            redirect.addFlashAttribute("error", "Ошибка при восстановлении сотрудника");
-            return "redirect:/admin/deleted";
-        }
-    }*/
-
-    /*@PreAuthorize("hasRole('resume.admin')")
-    @GetMapping("/admin/deleted")
-    public String viewDeletedEmployees(Model model) {
-        try {
-            List<Employee> deletedEmployees = employeeService.findDeletedEmployees();
-            model.addAttribute("deletedEmployees", deletedEmployees);
-            model.addAttribute("totalDeleted", deletedEmployees.size());
-            return "deleted-employees";
-        } catch (Exception e) {
-            log.error("Ошибка при загрузке архива сотрудников: {}", e.getMessage(), e);
-            model.addAttribute("error", "Ошибка при загрузке архива");
-            return "deleted-employees";
-        }
-    }*/
 
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/search")

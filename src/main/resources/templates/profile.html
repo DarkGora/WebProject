@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <!-- Добавляем шрифт Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -23,8 +25,19 @@
         body {
             background: var(--dark-bg);
             color: var(--text-light);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Улучшаем читаемость текста */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .text-muted {
+            color: #8b9bb4 !important; /* Более светлый оттенок для лучшей читаемости */
         }
 
         .profile-header {
@@ -50,7 +63,7 @@
         .profile-avatar {
             width: 120px;
             height: 120px;
-            border: 4px solid rgba(255, 255, 255, 0.2);
+            border: 4px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
@@ -73,26 +86,152 @@
             border: none;
             padding: 1rem 1.5rem;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .nav-tabs .nav-link.active {
             color: var(--text-light);
             background: rgba(102, 126, 234, 0.2);
             border: none;
+            font-weight: 600;
         }
 
+        /* Улучшаем поля формы */
         .form-control {
             background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 253, 253, 0.15);
-            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light) !important; /* Важно: белый текст */
             border-radius: 10px;
+            font-weight: 400;
+            padding: 0.75rem 1rem;
         }
 
         .form-control:focus {
             background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(102, 126, 234, 0.6);
+            border-color: rgba(102, 126, 234, 0.8);
             box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.25);
+            color: var(--text-light) !important;
+        }
+
+        /* Делаем placeholder видимым */
+        .form-control::placeholder {
+            color: #8b9bb4 !important;
+            opacity: 0.7;
+        }
+
+        /* Улучшаем текст в полях ввода */
+        .form-control:read-only {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-light) !important;
+        }
+
+        .form-label {
             color: var(--text-light);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-text {
+            color: #8b9bb4 !important;
+            font-size: 0.875rem;
+        }
+
+        /* Улучшаем кнопки */
+        .btn {
+            font-weight: 500;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary {
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Улучшаем навигацию */
+        .nav-pills .nav-link {
+            color: var(--text-muted);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .nav-pills .nav-link.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        /* Улучшаем бейджи */
+        .badge {
+            font-weight: 500;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        /* Улучшаем алерты */
+        .alert {
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+        }
+
+        /* Улучшаем карточки */
+        .card-title {
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        /* Улучшаем маленький текст */
+        small {
+            color: #8b9bb4;
+            font-weight: 400;
+        }
+
+        /* Улучшаем иконки */
+        .bi {
+            opacity: 0.9;
+        }
+
+        /* Улучшаем таймлайн */
+        .timeline-item {
+            border-left: 2px solid rgba(102, 126, 234, 0.3);
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -0.5rem;
+            top: 0;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            border: 2px solid var(--dark-bg);
+        }
+
+        .timeline-content h6 {
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        /* Улучшаем оповещения */
+        .opacity-75 {
+            opacity: 0.85 !important;
+        }
+
+        /* Улучшаем фон при редактировании */
+        .bg-dark {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-light) !important;
         }
     </style>
 </head>
@@ -102,7 +241,7 @@
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
             <i class="bi bi-people-fill me-2"></i>
-            <span>DarkGora</span>
+            <span style="font-weight: 600;">DarkGora</span>
         </a>
         <div class="d-flex align-items-center">
             <a th:href="@{/}" class="btn btn-outline-light me-2">
@@ -142,19 +281,18 @@
                      onerror="this.src='/images/default.jpg'">
             </div>
             <div class="col">
-                <h1 class="mb-1" th:text="${employee?.name} ?: 'Пользователь'">Имя не указано</h1>
+                <h1 class="mb-1" style="font-weight: 700;" th:text="${employee?.name} ?: 'Пользователь'">Имя не указано</h1>
                 <p class="mb-0 opacity-75">
                     <i class="bi bi-person-badge me-1"></i>
                     <span th:text="${employee?.position} ?: 'Должность не указана'">Должность не указана</span>
                 </p>
             </div>
             <div class="col-auto">
-                <!-- ИСПРАВЛЕНО: статус в зависимости от employee.active -->
-                <span th:if="${employee?.active}" class="badge bg-success fs-6">
+                <span th:if="${employee?.active}" class="badge bg-success fs-6" style="font-weight: 600;">
                     <i class="bi bi-shield-check me-1"></i>
                     Активный
                 </span>
-                <span th:unless="${employee?.active}" class="badge bg-secondary fs-6">
+                <span th:unless="${employee?.active}" class="badge bg-secondary fs-6" style="font-weight: 600;">
                     <i class="bi bi-shield-x me-1"></i>
                     Неактивен
                 </span>
@@ -170,7 +308,7 @@
                     <div class="mb-3">
                         <i class="bi bi-person-circle fs-1 text-primary"></i>
                     </div>
-                    <h5>Профиль пользователя</h5>
+                    <h5 style="font-weight: 600;">Профиль пользователя</h5>
                     <p class="text-muted small">Управление вашими данными</p>
                 </div>
 
@@ -189,18 +327,18 @@
 
             <!-- Статистика -->
             <div class="stats-card mt-3">
-                <h6 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Статистика</h6>
+                <h6 class="mb-3" style="font-weight: 600;"><i class="bi bi-bar-chart me-2"></i>Статистика</h6>
                 <div class="d-flex justify-content-between mb-2">
-                    <span>В системе:</span>
-                    <span class="text-success">1+ год</span>
+                    <span class="text-muted">В системе:</span>
+                    <span class="text-success" style="font-weight: 500;">1+ год</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Последний вход:</span>
-                    <span>Сегодня</span>
+                    <span class="text-muted">Последний вход:</span>
+                    <span style="font-weight: 500;">Сегодня</span>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <span>Роль:</span>
-                    <span class="badge bg-primary" sec:authentication="principal.authorities"></span>
+                    <span class="text-muted">Роль:</span>
+                    <span class="badge bg-primary" style="font-weight: 500;" sec:authentication="principal.authorities"></span>
                 </div>
             </div>
         </div>
@@ -212,8 +350,8 @@
                 <div class="tab-pane fade show active" id="personal">
                     <div class="stats-card">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4><i class="bi bi-person-lines-fill me-2"></i>Личные данные</h4>
-                            <button class="btn btn-outline-primary" id="editProfileBtn">
+                            <h4 style="font-weight: 600;"><i class="bi bi-person-lines-fill me-2"></i>Личные данные</h4>
+                            <button class="btn btn-outline-primary" id="editProfileBtn" style="font-weight: 500;">
                                 <i class="bi bi-pencil me-1"></i>Редактировать
                             </button>
                         </div>
@@ -261,10 +399,10 @@
                                 </div>
 
                                 <div class="col-12 mt-4" id="formActions" style="display: none;">
-                                    <button type="submit" class="btn btn-primary me-2">
+                                    <button type="submit" class="btn btn-primary me-2" style="font-weight: 500;">
                                         <i class="bi bi-check-lg me-1"></i>Сохранить изменения
                                     </button>
-                                    <button type="button" class="btn btn-secondary" id="cancelEditBtn">
+                                    <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="font-weight: 500;">
                                         <i class="bi bi-x-lg me-1"></i>Отмена
                                     </button>
                                 </div>
@@ -276,13 +414,13 @@
                     <div class="row mt-4">
                         <div class="col-md-6">
                             <div class="stats-card h-100">
-                                <h6><i class="bi bi-shield-check me-2"></i>Безопасность</h6>
+                                <h6 style="font-weight: 600;"><i class="bi bi-shield-check me-2"></i>Безопасность</h6>
                                 <p class="text-muted small mb-3">Управление безопасностью учетной записи</p>
                                 <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-warning">
+                                    <button class="btn btn-outline-warning" style="font-weight: 500;">
                                         <i class="bi bi-key me-1"></i>Сменить пароль
                                     </button>
-                                    <button class="btn btn-outline-info">
+                                    <button class="btn btn-outline-info" style="font-weight: 500;">
                                         <i class="bi bi-two-factor-authentication me-1"></i>2FA
                                     </button>
                                 </div>
@@ -291,19 +429,19 @@
 
                         <div class="col-md-6">
                             <div class="stats-card h-100">
-                                <h6><i class="bi bi-clock-history me-2"></i>Последняя активность</h6>
+                                <h6 style="font-weight: 600;"><i class="bi bi-clock-history me-2"></i>Последняя активность</h6>
                                 <div class="mt-3">
                                     <div class="d-flex justify-content-between mb-2">
-                                        <small>Текущая сессия:</small>
-                                        <small class="text-success">Активна</small>
+                                        <small class="text-muted">Текущая сессия:</small>
+                                        <small class="text-success" style="font-weight: 500;">Активна</small>
                                     </div>
                                     <div class="d-flex justify-content-between mb-2">
-                                        <small>Устройство:</small>
-                                        <small>Chrome, Windows</small>
+                                        <small class="text-muted">Устройство:</small>
+                                        <small style="font-weight: 500;">Chrome, Windows</small>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <small>IP-адрес:</small>
-                                        <small>192.168.1.1</small>
+                                        <small class="text-muted">IP-адрес:</small>
+                                        <small style="font-weight: 500;">192.168.1.1</small>
                                     </div>
                                 </div>
                             </div>
@@ -314,14 +452,14 @@
                 <!-- Активность -->
                 <div class="tab-pane fade" id="activity">
                     <div class="stats-card">
-                        <h4><i class="bi bi-graph-up me-2"></i>История активности</h4>
+                        <h4 style="font-weight: 600;"><i class="bi bi-graph-up me-2"></i>История активности</h4>
                         <p class="text-muted">Последние действия в системе</p>
 
                         <div class="timeline mt-4">
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-success"></div>
                                 <div class="timeline-content">
-                                    <h6 class="mb-1">Вход в систему</h6>
+                                    <h6 class="mb-1" style="font-weight: 600;">Вход в систему</h6>
                                     <p class="text-muted small mb-1">Успешная аутентификация</p>
                                     <small class="text-muted">Сегодня, 14:30</small>
                                 </div>
@@ -330,7 +468,7 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-primary"></div>
                                 <div class="timeline-content">
-                                    <h6 class="mb-1">Просмотр сотрудников</h6>
+                                    <h6 class="mb-1" style="font-weight: 600;">Просмотр сотрудников</h6>
                                     <p class="text-muted small mb-1">Открыт список сотрудников</p>
                                     <small class="text-muted">Сегодня, 14:25</small>
                                 </div>
@@ -339,7 +477,7 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-info"></div>
                                 <div class="timeline-content">
-                                    <h6 class="mb-1">Поиск сотрудника</h6>
+                                    <h6 class="mb-1" style="font-weight: 600;">Поиск сотрудника</h6>
                                     <p class="text-muted small mb-1">Выполнен поиск по имени "Иван"</p>
                                     <small class="text-muted">Вчера, 16:45</small>
                                 </div>
@@ -398,16 +536,6 @@
                 event.preventDefault();
                 tabTrigger.show();
             });
-        });
-
-        // Отладочная информация в консоли
-        console.log('Profile page loaded');
-        console.log('Employee data:', {
-            name: '[[${employee?.name}]]',
-            email: '[[${employee?.email}]]',
-            position: '[[${employee?.position}]]',
-            department: '[[${employee?.department}]]',
-            phone: '[[${employee?.phoneNumber}]]'
         });
     });
 </script>

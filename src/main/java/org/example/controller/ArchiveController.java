@@ -21,7 +21,6 @@ public class ArchiveController {
 
     private final EmployeeService employeeService;
 
-    // ИСПРАВЛЕНО: убрал дублирующий /admin в пути
     @GetMapping("/deleted")
     public String viewDeletedEmployees(Model model) {
         try {
@@ -44,7 +43,6 @@ public class ArchiveController {
         }
     }
 
-    // ИСПРАВЛЕНО: правильный путь для restore
     @PostMapping("/restore/{id}")
     public String restoreEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -63,7 +61,6 @@ public class ArchiveController {
         }
     }
 
-    // ИСПРАВЛЕНО: правильный путь для permanent-delete
     @PostMapping("/permanent-delete/{id}")
     public String permanentDelete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.info("Полное удаление сотрудника из архива ID: {}", id);
