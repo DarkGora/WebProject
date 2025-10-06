@@ -88,6 +88,20 @@
             color: var(--text-light) !important;
         }
 
+        /* ИСПРАВЛЕНО: Стили для выпадающих списков */
+        .form-select option {
+            background: var(--dark-bg) !important;
+            color: var(--text-light) !important;
+            padding: 0.5rem 1rem;
+        }
+
+        .form-select option:hover,
+        .form-select option:focus,
+        .form-select option:checked {
+            background: rgba(102, 126, 234, 0.3) !important;
+            color: var(--text-light) !important;
+        }
+
         /* Делаем placeholder видимым */
         .form-control::placeholder {
             color: #8b9bb4 !important;
@@ -147,15 +161,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        .preview-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Улучшаем кнопки */
         .btn {
             font-weight: 500;
             border-radius: 10px;
@@ -235,6 +240,32 @@
         /* Улучшаем иконки */
         .bi {
             opacity: 0.9;
+        }
+
+        /* Кастомные стили для выпадающих списков */
+        select.form-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        /* Для браузеров которые поддерживают кастомные скроллбары */
+        .form-select::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .form-select::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .form-select::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+
+        .form-select::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.7);
         }
     </style>
 </head>
@@ -634,7 +665,6 @@
     }
 
     function applyTheme(theme) {
-        // Здесь можно добавить логику немедленного применения темы
         console.log('Applying theme:', theme);
     }
 
