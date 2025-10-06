@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.model.*;
+import org.example.model.dto.ProfileUpdateRequest;
 import org.example.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -168,6 +169,51 @@ public class EmployeeService {
         }
         Pageable pageable = PageRequest.of(offset / limit, limit);
         return employeeRepository.findAllActivePaginated(pageable);
+    }
+    @Transactional(readOnly = true)
+    public Page<Employee> findDeletedEmployeesPaginated(Pageable pageable) {
+        log.debug("Поиск удаленных сотрудников с пагинацией");
+        return employeeRepository.findByDeletedTrue(pageable);
+    }
+    @Transactional(readOnly = true)
+    public Optional<Employee> findByEmail(String email) {
+        return employeeRepository.findByEmailAndDeletedFalse(email);
+    }
+
+    @Transactional
+    public void updateEmployeeProfile(String email, ProfileUpdateRequest request) {
+        Employee employee = findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        // Обновляем только разрешенные поля профиля
+        if (request.getDisplayName() != null) {
+            employee.setName(request.getDisplayName());
+        }
+        if (request.getPhoneNumber() != null) {
+            employee.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getDepartment() != null) {
+            employee.setDepartment(request.getDepartment());
+        }
+        if (request.getPosition() != null) {
+            employee.setPosition(request.getPosition());
+        }
+
+        employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public void updateEmployeeSettings(String email, Employee newSettings) {
+        Employee employee = findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Сотрудник не найден"));
+
+        employee.setEmailNotifications(newSettings.isEmailNotifications());
+        employee.setSmsNotifications(newSettings.isSmsNotifications());
+        employee.setTheme(newSettings.getTheme());
+        employee.setLanguage(newSettings.getLanguage());
+        employee.setItemsPerPage(newSettings.getItemsPerPage());
+
+        employeeRepository.save(employee);
     }
 
     @Transactional(readOnly = true)

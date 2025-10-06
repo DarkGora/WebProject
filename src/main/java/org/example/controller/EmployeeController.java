@@ -316,7 +316,7 @@ public class EmployeeController {
         }
     }
 
-    @PreAuthorize("hasRole('resume.admin')")
+    /*@PreAuthorize("hasRole('resume.admin')")
     @PostMapping("/employee/restore/{id}")
     public String restoreEmployee(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -333,9 +333,9 @@ public class EmployeeController {
             redirect.addFlashAttribute("error", "Ошибка при восстановлении сотрудника");
             return "redirect:/admin/deleted";
         }
-    }
+    }*/
 
-    @PreAuthorize("hasRole('resume.admin')")
+    /*@PreAuthorize("hasRole('resume.admin')")
     @GetMapping("/admin/deleted")
     public String viewDeletedEmployees(Model model) {
         try {
@@ -348,7 +348,7 @@ public class EmployeeController {
             model.addAttribute("error", "Ошибка при загрузке архива");
             return "deleted-employees";
         }
-    }
+    }*/
 
     @PreAuthorize("hasAnyRole('resume.admin','resume.client','resume.user')")
     @GetMapping("/search")

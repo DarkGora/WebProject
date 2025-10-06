@@ -740,15 +740,15 @@
             <!-- Профиль пользователя -->
             <div class="dropdown">
                 <button class="btn btn-outline-light d-flex align-items-center hover-lift" type="button" data-bs-toggle="dropdown">
-                    <img src="/images/default-avatar.jpg" class="rounded-circle me-2" width="36" height="36" alt="Аватар" onerror="this.src='/images/default.jpg'">
+                    <img th:src="@{${employee?.photoPath != null ? employee.photoPath : '/images/default.jpg'}}" class="rounded-circle me-2" width="36" height="36" alt="Аватар" onerror="this.src='/images/default.jpg'">
                     <span>Администратор</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><h6 class="dropdown-header">Учетная запись</h6></li>
-                    <li><a class="dropdown-item" href="#">
+                    <li><a class="dropdown-item" th:href="@{/profile}">
                         <i class="bi bi-person me-2"></i>Профиль
                     </a></li>
-                    <li><a class="dropdown-item" href="#">
+                    <li><a class="dropdown-item" th:href="@{/settings}">
                         <i class="bi bi-gear me-2"></i>Настройки
                     </a></li>
                     <div sec:authorize="hasRole('resume.admin')">

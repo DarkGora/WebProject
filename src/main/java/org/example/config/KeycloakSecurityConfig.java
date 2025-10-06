@@ -27,6 +27,8 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +59,11 @@ public class KeycloakSecurityConfig {
 
                         // Главная страница со списком сотрудников - требует аутентификации
                         .requestMatchers("/employees").hasAnyRole("resume.user", "resume.admin", "resume.client")
+// Профиль и настройки - требуют аутентификации
+                                .requestMatchers("/profile/**", "/settings/**").authenticated()
+
+// Архив сотрудников - только для админов
+                                .requestMatchers("/admin/**").hasRole("resume.admin")
 
                         // === АДМИНСКИЕ ENDPOINTS ===
                         .requestMatchers("/employee/new", "/employee/add", "/employee/edit/**").hasRole("resume.admin")
@@ -101,7 +108,9 @@ public class KeycloakSecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                )
                 .build();
     }
 

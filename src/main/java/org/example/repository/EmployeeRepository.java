@@ -23,7 +23,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Employee> findByDeletedFalse();
     List<Employee> findByDeletedTrue();
     Page<Employee> findByDeletedFalse(Pageable pageable);
+    Page<Employee> findByDeletedTrue(Pageable pageable);
 
+    Optional<Employee> findByEmailAndDeletedFalse(String email);
     // === ПАГИНАЦИЯ ===
     @Query("SELECT e FROM Employee e WHERE e.deleted = false ORDER BY e.id")
     List<Employee> findAllActivePaginated(Pageable pageable);

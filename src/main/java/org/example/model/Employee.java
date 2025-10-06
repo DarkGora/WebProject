@@ -107,6 +107,26 @@ public class Employee {
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Review> reviews = new ArrayList<>();
 
+    @Column(name = "email_notifications")
+    @Builder.Default
+    private boolean emailNotifications = true;
+
+    @Column(name = "sms_notifications")
+    @Builder.Default
+    private boolean smsNotifications = false;
+
+    @Column(name = "theme")
+    @Builder.Default
+    private String theme = "dark";
+
+    @Column(name = "language")
+    @Builder.Default
+    private String language = "ru";
+
+    @Column(name = "items_per_page")
+    @Builder.Default
+    private int itemsPerPage = 10;
+
     // === МЕТОДЫ ЖИЗНЕННОГО ЦИКЛА ===
 
     @PrePersist
@@ -122,18 +142,13 @@ public class Employee {
 
     // === МЕТОДЫ ДЛЯ SOFT DELETE ===
 
-    /**
-     * Мягкое удаление сотрудника
-     */
+
     public void softDelete() {
         this.deleted = true;
         this.deletedAt = LocalDateTime.now();
         this.active = false; // Деактивируем при удалении
     }
 
-    /**
-     * Мягкое удаление с указанием кто удалил
-     */
     public void softDelete(String deletedBy) {
         this.deleted = true;
         this.deletedAt = LocalDateTime.now();
@@ -141,9 +156,7 @@ public class Employee {
         this.active = false;
     }
 
-    /**
-     * Восстановление сотрудника
-     */
+
     public void restore() {
         this.deleted = false;
         this.deletedAt = null;
@@ -151,39 +164,25 @@ public class Employee {
         this.active = true; // Активируем при восстановлении
     }
 
-    /**
-     * Проверка, удален ли сотрудник
-     */
     public boolean isDeleted() {
         return deleted;
     }
 
-    /**
-     * Получение времени удаления
-     */
+
     public LocalDateTime getDeletedAt() {
         return deletedAt;
     }
 
-    /**
-     * Получение информации о том, кто удалил
-     */
     public String getDeletedBy() {
         return deletedBy;
     }
 
     // === БИЗНЕС-МЕТОДЫ ===
 
-    /**
-     * Проверка, активен ли сотрудник (не удален и активен)
-     */
     public boolean isActiveEmployee() {
         return !deleted && active;
     }
 
-    /**
-     * Получение статуса сотрудника для отображения
-     */
     public String getStatus() {
         if (deleted) {
             return "Удален";
@@ -194,9 +193,6 @@ public class Employee {
         }
     }
 
-    /**
-     * Получение времени последнего изменения
-     */
     public LocalDateTime getLastModified() {
         return updatedAt != null ? updatedAt : createdAt;
     }
@@ -239,47 +235,29 @@ public class Employee {
 
     // === ВАЛИДАЦИОННЫЕ МЕТОДЫ ===
 
-    /**
-     * Проверка возможности редактирования
-     */
     public boolean isEditable() {
         return !deleted;
     }
 
-    /**
-     * Проверка возможности удаления
-     */
     public boolean isDeletable() {
         return !deleted;
     }
 
-    /**
-     * Проверка возможности восстановления
-     */
     public boolean isRestorable() {
         return deleted;
     }
 
     // === МЕТОДЫ ДЛЯ ОТОБРАЖЕНИЯ ===
 
-    /**
-     * Получение пути к фото с fallback на default
-     */
     public String getDisplayPhotoPath() {
         return (photoPath != null && !photoPath.trim().isEmpty()) ?
                 photoPath : "/images/default.jpg";
     }
 
-    /**
-     * Получение короткой информации о сотруднике
-     */
     public String getShortInfo() {
         return String.format("%s - %s (%s)", name, position, department);
     }
 
-    /**
-     * Получение основных навыков в виде строки
-     */
     public String getSkillsAsString() {
         if (skills == null || skills.isEmpty()) {
             return "Нет навыков";
